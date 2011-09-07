@@ -1,0 +1,31 @@
+DESCRIPTION
+***********
+A collection of bash functions that composes an API for administrating CentOS Server linux boxes.
+i.e. provisioning websites, installing services, hardening daemons, etc.
+
+FILE USAGE
+**********
+sudo -s
+source <file> <parameters>, i.e. source networking.sh
+<function>
+exit
+
+DAEMON INSTALLATION GUIDELINES
+******************************
+01. Install prerequisites
+02. Create user & group
+03. Donwload, compile & install files
+04. Make binaries availiable to PATH
+05. Configure
+06. Set logs
+07. Integrate into logrotate
+08. Set daemon
+09. Set firewall
+10. Collect garbage
+
+THERE IS A PLACE FOR EVERYTHING
+*******************************
+/opt : Installation directory, i.e. /etc/mysql
+/etc : Configuration files (.conf), i.e. /etc/mysql/my.conf
+/var/log : Log files (.log), i.e. /etc/mysql/error.log
+/var/run : PID files (.pid) | Lock files (.lock) | Socket files (.sock), i.e. /var/run/mysql/mysql.pid
