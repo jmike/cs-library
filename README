@@ -14,18 +14,23 @@ DAEMON INSTALLATION GUIDELINES
 ******************************
 01. Install prerequisites
 02. Create user & group
-03. Donwload, compile & install files
-04. Make binaries availiable to PATH
-05. Configure
-06. Set logs
-07. Integrate into logrotate
-08. Set daemon
-09. Set firewall
-10. Collect garbage
+03. Create directories & set appropriate permissions
+04. Donwload, compile & install files
+05. Make binaries availiable to PATH
+06. Configure
+07. Set logs
+08. Integrate into logrotate
+09. Set daemon
+10. Set firewall
+11. Collect garbage
+12. Secure the application (if needed)
 
 THERE IS A PLACE FOR EVERYTHING
 *******************************
-/opt : Installation directory, i.e. /etc/mysql
-/etc : Configuration files (.conf), i.e. /etc/mysql/my.conf
-/var/log : Log files (.log), i.e. /etc/mysql/error.log
-/var/run : PID files (.pid) | Lock files (.lock) | Socket files (.sock), i.e. /var/run/mysql/mysql.pid
+A. Applications are installed in "/opt", i.e. /opt/mysql.
+B. Configuration files are stored in "/etc", i.e. /etc/nginx/nginx.conf.
+C. Log files are stored in "/var/log", i.e. /var/log/httpd/error.log
+D. State files, such as PID or Lock files, are stored in "/var/run", i.e. /var/run/mysql/mysql.sock
+E. Init.d scripts are stored in "/etc/init.d", i.e. /etc/init.d/sshd
+F. Profile.d scripts are stored in "/etc/profile.d", i.e. /etc/profile.d/mysql.sh
+G. Logrotate.d scripts are stored in "/etc/logrotate.d", i.e. /etc/logrotate.d/mysql
