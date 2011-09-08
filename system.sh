@@ -23,7 +23,7 @@ function update {
 # Installs extra packages and repositories.
 function install_extras {
    # Install EPEL repository:
-   case $(cat /etc/redhat-release | sed -e "s|^.*\(CentOS\).*\([0-9]\+\.[0-9]\+\).*$|\1 \2|") in #in case distro name is ..
+   case $(cat /etc/*-release | sed -e "s|^.*\(CentOS\).*\([0-9]\+\.[0-9]\+\).*$|\1 \2|") in #in case distro name is ..
       'CentOS 6.0')
          rpm -Uvh http://download.fedora.redhat.com/pub/epel/6/x86_64/epel-release-6-5.noarch.rpm
          ;;
@@ -32,9 +32,10 @@ function install_extras {
          return 0 #exit
          ;;
    esac
-   # Install priorities to enforce the ordered protection of repositories:
-   yum install -y yum-plugin-priorities
-   # Configure priorities (lower priority numbers mean higher repository priority):
+   yum install -y yum-plugin-priorities #install priorities to enforce the ordered protection of repositories
+   # Configure priorities:
+   # Lower priority numbers mean higher repository priority.
+   # In case of a package existing in several repositories, the repository with the lowest priority number is prefered over the others.
    sed -i \
 -e "/^priority/d" \
 -e "/\[base\]/a \
@@ -51,11 +52,23 @@ priority=10" \
 /etc/yum.repos.d/epel.repo
    yum check-update
    # Install extra packages:
-   yum install -y htop system-config-securitylevel jwhois openssh-clients wget less vim gcc make automake autoconf bind-utils
+   yum -y install \
+htop \
+system-config-securitylevel \
+jwhois \
+openssh-clients \
+wget \
+less \
+vim \
+gcc \
+make \
+automake \
+autoconf \
+bind-utils
 }
 
 # Promotes the specified user to sudoer.
-# User will be able to run all commands (similar to root).
+# User will be able to run all commands (similar to root), without entering a password.
 # $1 username {REQUIRED}
 function set_superuser {
    local user=$1
@@ -66,11 +79,11 @@ function set_superuser {
    fi
    # Make sure user exists:
    if ! grep -iq "^$user" /etc/passwd ; then #user does not exist
-      echo "User \"$user\" does not exist."
+      echo "User \"$user\" does not exist. Please create user and retry."
       return 0 #exit
    fi
    # Set as superuser:
-   usermod --append --groups wheel $1 #append user to wheel group
+   usermod --append --groups wheel $user #append user to wheel group
    sed -i -e "s|^\(#\?\)\(\s\?\)\(%wheel\)\(\s\+\)\(ALL=(ALL)\)\(\s\+\)\(NOPASSWD:\sALL\)\(.*\)$|\3 \5 \7|" /etc/sudoers #allow wheel group to run all commands (similar to root)
 }
 

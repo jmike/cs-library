@@ -35,7 +35,7 @@ function get_rdns {
       return 0 #exit
    fi
    # Return reverse DNS hostname:
-   if [ ! -e /usr/bin/host ] ; then #host binary does not exist
+   if [ ! -e /usr/bin/host ] ; then
       yum -y install bind-utils > /dev/null #silently install bind-utils
    fi
    echo $(host $ip_address | awk '/pointer/ {print $5}' | sed 's/\.$//')
@@ -49,30 +49,30 @@ function get_rdns_primary_ip {
 # Sets hostname to the specified value.
 # $1 the FQDN hostname, i.e. mitsos.local.host {REQUIRED}
 function set_hostname {
-   local fqdn="$1"
+   local name="$1"
    # Make sure hostname is specified:
-   if [ -z $fqdn ] ; then #hostname not specified
+   if [ -z $name ] ; then #hostname not specified
       echo "Hostname must be specified."
       return 0 #exit
    fi
    # Set hostname:
-   hostname $fqdn
+   hostname $name
    # Set /etc/hostname:
-   echo $fqdn > /etc/hostname
+   echo $name > /etc/hostname
    # Set /etc/sysconfig/network:
    if grep -q "^HOSTNAME=" /etc/sysconfig/network ; then #hostname already set
-      sed -i -e "s|^\(HOSTNAME=\).*$|\1$fqdn|" /etc/sysconfig/network #replace hostname
+      sed -i -e "s|^\(HOSTNAME=\).*$|\1$name|" /etc/sysconfig/network #replace hostname
    else #hostname not set
-      echo "HOSTNAME=$fqdn" >> /etc/sysconfig/network #append hostname
+      echo "HOSTNAME=$name" >> /etc/sysconfig/network #append hostname
    fi
    # Set /etc/hosts:
    if grep -q "^$(get_primary_ip)" /etc/hosts ; then #hostname already set
-      sed -i -e "s|^\($(get_primary_ip)\).*$|\1 $(get_rdns_primary_ip) $fqdn|" /etc/hosts #replace hostname
+      sed -i -e "s|^\($(get_primary_ip)\).*$|\1 $(get_rdns_primary_ip) $name|" /etc/hosts #replace hostname
    else #hostname not set
       echo -n \
 "127.0.0.1 localhost localhost.localdomain localhost4 localhost4.localdomain4
 ::1 localhost localhost.localdomain localhost6 localhost6.localdomain6
-$(get_primary_ip) $(get_rdns_primary_ip) $fqdn
+$(get_primary_ip) $(get_rdns_primary_ip) $name
 " > /etc/hosts #set hostname
    fi
 }
@@ -88,17 +88,17 @@ function set_public_ip {
    local gateway="$3"
    # Make sure ip address is specified:
    if [ -z $ip_address ] ; then #ip address not specified
-      echo "IP address must be specified."
+      echo "Public interface's IP address must be specified."
       return 0 #exit
    fi
    # Make sure netmask is specified:
    if [ -z $netmask ] ; then #netmask not specified
-      echo "Netmask must be specified."
+      echo "Public interface's netmask must be specified."
       return 0 #exit
    fi
    # Make sure gateway is specified:
    if [ -z $gateway ] ; then #gateway not specified
-      echo "Gateway must be specified."
+      echo "Public interface's gateway must be specified."
       return 0 #exit
    fi
    # Set interface
@@ -124,12 +124,12 @@ function set_private_ip {
    local netmask="$2"
    # Make sure ip address is specified:
    if [ -z $ip_address ] ; then #ip address not specified
-      echo "IP address must be specified."
+      echo "Private interface's IP address must be specified."
       return 0 #exit
    fi
    # Make sure netmask is specified:
    if [ -z $netmask ] ; then #netmask not specified
-      echo "Netmask must be specified."
+      echo "Private interface's netmask must be specified."
       return 0 #exit
    fi
    # Set interface
@@ -162,13 +162,14 @@ domain $name" \
 /etc/resolv.conf
 }
 
-# Sets the search list for host-name lookup.
+# Sets the search list for hostnames lookup.
+# Usually this is the same as the local domain.
 # $1 the hostname of the search list {REQUIRED}
 function set_search_list {
    local name="$1"
    # Make sure name is specified:
    if [ -z $name ] ; then
-      echo "The hostname of the search list must be specified."
+      echo "Search list must be specified."
       return 0 #exit
    fi
    # Set domain:

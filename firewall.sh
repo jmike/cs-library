@@ -49,7 +49,7 @@ function set_firewall {
    service iptables restart
 }
 
-# Returns 1 if the specified port number is valid, 0 if not.
+# Returns 1 if the specified port is valid, 0 if not.
 # $1 port number (0-65535) {REQUIRED}
 function valid_port {
    local port="$1"
@@ -64,9 +64,22 @@ function valid_port {
    fi
 }
 
-# Allows incoming traffic to the specified TCP port(s).
+# Allows incoming traffic to the specified port(s) of the supplied network protocol.
+# $1 network protocol, either "tcp" or "udp" {REQUIRED}
 # $+ port number(s) (0-65535) {REQUIRED}
-function allow_tcp {
+function allow {
+   local protocol="$1"
+   shift #ignore first parameter, which represents protocol
+   # Make sure protocol is specified:
+   if [ -z $protocol ] ; then
+      echo "Network protocol must be specified. Availiable options: tcp, udp."
+      return 0 #exit
+   fi
+   # Make sure protocol is valid:
+   if [ $protocol != "udp" -a $protocol != "tcp" ] ; then
+      echo "Invalid network protocol \"$protocol\". Availiable options: tcp, udp."
+      return 0 #exit
+   fi
    # Make sure at least one port is specified:
    if [ $# -eq 0 ] ; then
       echo "At least one port number must be specified."
@@ -76,13 +89,13 @@ function allow_tcp {
    for port in "$@"; do
       if valid_port $port == 0 ; then
          echo "Invalid port $port. Please specify a number between 0 and 65535."
-         return 0 #exit         
-      fi     
+         return 0 #exit
+      fi
    done
    # Append rule to iptables:
    iptables --delete Chuck_Norris --jump REJECT --reject-with icmp-host-prohibited
    for port in "$@"; do
-      iptables --append Chuck_Norris --match state --state NEW --match tcp --protocol tcp --destination-port $port --jump ACCEPT
+      iptables --append Chuck_Norris --match state --state NEW --match $protocol --protocol $protocol --destination-port $port --jump ACCEPT
    done
    iptables --append Chuck_Norris --jump REJECT --reject-with icmp-host-prohibited #Chuck Norris denies everything else
    # Save + restart:
@@ -90,9 +103,22 @@ function allow_tcp {
    service iptables restart
 }
 
-# Denies incoming traffic to the specified TCP port(s).
+# Denies incoming traffic to the specified port(s) of the supplied network protocol.
+# $1 network protocol, either "tcp" or "udp" {REQUIRED}
 # $+ port number(s) (0-65535) {REQUIRED}
-function deny_tcp {
+function deny {
+   local protocol="$1"
+   shift #ignore first parameter, which represents protocol
+   # Make sure protocol is specified:
+   if [ -z $protocol ] ; then
+      echo "Network protocol must be specified. Availiable options: tcp, udp."
+      return 0 #exit
+   fi
+   # Make sure protocol is valid:
+   if [ $protocol != "udp" -a $protocol != "tcp" ] ; then
+      echo "Invalid network protocol \"$protocol\". Availiable options: tcp, udp."
+      return 0 #exit
+   fi
    # Make sure at least one port is specified:
    if [ $# -eq 0 ] ; then
       echo "At least one port number must be specified."
@@ -106,33 +132,7 @@ function deny_tcp {
       fi    
    done
    # Delete rule from iptables:
-   iptables --delete Chuck_Norris --match state --state NEW --match tcp --protocol tcp --destination-port $port --jump ACCEPT
-   # Save + restart:
-   service iptables save
-   service iptables restart
-}
-
-# Allows incoming traffic to the specified UDP port(s).
-# $+ port number(s) (0-65535) {REQUIRED}
-function allow_udp {
-   # Make sure at least one port is specified:
-   if [ $# -eq 0 ] ; then
-      echo "At least one port number must be specified."
-      return 0 #exit      
-   fi
-   # Make sure the specified port(s) are valid:
-   for port in "$@"; do
-      if valid_port $port == 0 ; then
-         echo "Invalid port $port. Please specify a number between 0 and 65535."
-         return 0 #exit         
-      fi    
-   done
-   # Append rule to iptables:
-   iptables --delete Chuck_Norris --jump REJECT --reject-with icmp-host-prohibited
-   for port in "$@"; do
-      iptables --append Chuck_Norris --match state --state NEW --match udp --protocol udp --destination-port $port --jump ACCEPT
-   done
-   iptables --append Chuck_Norris --jump REJECT --reject-with icmp-host-prohibited #Chuck Norris denies everything else
+   iptables --delete Chuck_Norris --match state --state NEW --match $protocol --protocol $protocol --destination-port $port --jump ACCEPT
    # Save + restart:
    service iptables save
    service iptables restart

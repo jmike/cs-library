@@ -17,6 +17,8 @@
 
 source firewall.sh
 
+SSH_CONF_FILE="/etc/ssh/sshd_config"
+SSH_PID_FILE="/var/run/sshd.pid"
 SSH_PORT="$1"
 
 if [ -z $SSH_PORT ] ; then #SSH port not specified
@@ -29,35 +31,35 @@ fi
 # Please refer to http://wiki.centos.org/HowTos/Network/SecuringSSH for further reading.
 function set_sshd {
    # Configure:
-   sed -i -e "s|^\(#\?\)\(Port\)\(\s\+\)\(.*\)$|\2 $SSH_PORT|" /etc/ssh/sshd_config #change SSH port
-   sed -i -e "s|^\(#\?\)\(PermitRootLogin\)\(\s\+\)\(.*\)$|\2 no|" /etc/ssh/sshd_config #disable root login
-   sed -i -e "s|^\(#\?\)\(LoginGraceTime\)\(\s\+\)\(.*\)$|\2 1m|" /etc/ssh/sshd_config #user has 1 minute to enter password, else connection is closed
-   sed -i -e "s|^\(#\?\)\(MaxAuthTries\)\(\s\+\)\(.*\)$|\2 3|" /etc/ssh/sshd_config #after 3 failed login attempts connection is closed
-   sed -i -e "s|^\(#\?\)\(MaxSessions\)\(\s\+\)\(.*\)$|\2 3|" /etc/ssh/sshd_config #max_sessions=3
-   sed -i -e "s|^\(#\?\)\(IgnoreUserKnownHosts\)\(\s\+\)\(.*\)$|\2 yes|" /etc/ssh/sshd_config
-   sed -i -e "s|^\(#\?\)\(IgnoreRhosts\)\(\s\+\)\(.*\)$|\2 yes|" /etc/ssh/sshd_config
-   sed -i -e "s|^\(#\?\)\(HostbasedAuthentication\)\(\s\+\)\(.*\)$|\2 no|" /etc/ssh/sshd_config
-   sed -i -e "s|^\(#\?\)\(UseDNS\)\(\s\+\)\(.*\)$|\2 no|" /etc/ssh/sshd_config
-   sed -i -e "s|^\(#\?\)\(PermitEmptyPasswords\)\(\s\+\)\(.*\)$|\2 no|" /etc/ssh/sshd_config
+   sed -i -e "s|^\(#\?\)\(Port\)\(\s\+\)\(.*\)$|\2 $SSH_PORT|" $SSH_CONF_FILE #change SSH port
+   sed -i -e "s|^\(#\?\)\(PermitRootLogin\)\(\s\+\)\(.*\)$|\2 no|" $SSH_CONF_FILE #disable root login
+   sed -i -e "s|^\(#\?\)\(LoginGraceTime\)\(\s\+\)\(.*\)$|\2 1m|" $SSH_CONF_FILE #user has 1 minute to enter password, else connection is closed
+   sed -i -e "s|^\(#\?\)\(MaxAuthTries\)\(\s\+\)\(.*\)$|\2 3|" $SSH_CONF_FILE #after 3 failed login attempts connection is closed
+   sed -i -e "s|^\(#\?\)\(MaxSessions\)\(\s\+\)\(.*\)$|\2 3|" $SSH_CONF_FILE #max_sessions=3
+   sed -i -e "s|^\(#\?\)\(IgnoreUserKnownHosts\)\(\s\+\)\(.*\)$|\2 yes|" $SSH_CONF_FILE
+   sed -i -e "s|^\(#\?\)\(IgnoreRhosts\)\(\s\+\)\(.*\)$|\2 yes|" $SSH_CONF_FILE
+   sed -i -e "s|^\(#\?\)\(HostbasedAuthentication\)\(\s\+\)\(.*\)$|\2 no|" $SSH_CONF_FILE
+   sed -i -e "s|^\(#\?\)\(UseDNS\)\(\s\+\)\(.*\)$|\2 no|" $SSH_CONF_FILE
+   sed -i -e "s|^\(#\?\)\(PermitEmptyPasswords\)\(\s\+\)\(.*\)$|\2 no|" $SSH_CONF_FILE
    sed -i \
 -e "s|^\(#\?\)\(ClientAliveInterval\)\(\s\+\)\(.*\)$|\2 900|" \
 -e "s|^\(#\?\)\(ClientAliveCountMax\)\(\s\+\)\(.*\)$|\2 0|" \
-/etc/ssh/sshd_config #after 15 minutes of inactivity user is kicked out
-   sed -i -e "s|^\(#\?\)\(GSSAPIAuthentication\)\(\s\+\)\(.*\)$|\2 no|" /etc/ssh/sshd_config
-   sed -i -e "s|^\(#\?\)\(UsePAM\)\(\s\+\)\(.*\)$|\2 no|" /etc/ssh/sshd_config
-   sed -i -e "s|^\(#\?\)\(X11Forwarding\)\(\s\+\)\(.*\)$|\2 no|" /etc/ssh/sshd_config
-   sed -i -e "s|^\(#\?\)\(AllowTcpForwarding\)\(\s\+\)\(.*\)$|\2 no|" /etc/ssh/sshd_config
+$SSH_CONF_FILE #after 15 minutes of inactivity user is kicked out
+   sed -i -e "s|^\(#\?\)\(GSSAPIAuthentication\)\(\s\+\)\(.*\)$|\2 no|" $SSH_CONF_FILE
+   sed -i -e "s|^\(#\?\)\(UsePAM\)\(\s\+\)\(.*\)$|\2 no|" $SSH_CONF_FILE
+   sed -i -e "s|^\(#\?\)\(X11Forwarding\)\(\s\+\)\(.*\)$|\2 no|" $SSH_CONF_FILE
+   sed -i -e "s|^\(#\?\)\(AllowTcpForwarding\)\(\s\+\)\(.*\)$|\2 no|" $SSH_CONF_FILE
    sed -i \
 -e "s|^\(#\?\)\(LogLevel\)\(\s\+\)\(.*\)$|\2 INFO|" \
 -e "s|^\(#\?\)\(SyslogFacility\)\(\s\+\)\(.*\)$|\2 AUTHPRIV|" \
-/etc/ssh/sshd_config #log messages of INFO level (or higher) in /var/log/secure
-   sed -i -e "s|^\(#\?\)\(PidFile\)\(\s\+\)\(.*\)$|\2 /var/run/sshd.pid|" /etc/ssh/sshd_config #set PID file
-   sed -i -e "s|^\(#\?\)\(Subsystem\)\(\s\+\)\(sftp\)\(\s\+\)\(.*\)$|\2 \4 internal-sftp|" /etc/ssh/sshd_config #set sftp subsystem to accept chroot jails
-   sed -i -e '$!N; /^\(.*\)\n\1$/!P; D' /etc/ssh/sshd_config #remove concurent duplicate lines
-   chmod u=rw,g=r,o= /etc/ssh/sshd_config
+$SSH_CONF_FILE #log messages of INFO level (or higher) in /var/log/secure
+   sed -i -e "s|^\(#\?\)\(PidFile\)\(\s\+\)\(.*\)$|\2 $SSH_PID_FILE|" $SSH_CONF_FILE #set PID file
+   sed -i -e "s|^\(#\?\)\(Subsystem\)\(\s\+\)\(sftp\)\(\s\+\)\(.*\)$|\2 \4 internal-sftp|" $SSH_CONF_FILE #set sftp subsystem to accept chroot jails
+   sed -i -e '$!N; /^\(.*\)\n\1$/!P; D' $SSH_CONF_FILE #remove concurent duplicate lines
+   chmod u=rw,g=,o= $SSH_CONF_FILE
    service sshd reload #restart service
    # Set firewall:
-   allow_tcp $SSH_PORT
+   allow tcp $SSH_PORT
 }
 
 # Imprisons the specified user in a SFTP chroot jail.
@@ -88,8 +90,8 @@ function add_sftp_jail {
       return 0 #exit
    fi
    # Make sure chroot jail does not already exist:
-   if grep -iq "^Match User \"$user\"" /etc/ssh/sshd_config ; then #chroot jail already exists in config file
-      sed -i -e "/^Match User \"$user\"$/,/^#End of Match$/d" /etc/ssh/sshd_config #remove lines from "Match User $user" to the first "#End of Match"
+   if grep -iq "^Match User \"$user\"" $SSH_CONF_FILE ; then #chroot jail already exists in config file
+      sed -i -e "/^Match User \"$user\"$/,/^#End of Match$/d" $SSH_CONF_FILE #remove lines from "Match User $user" to the first "#End of Match"
    fi
    # Configure new chroot jail:
    echo -n \
@@ -98,7 +100,7 @@ function add_sftp_jail {
    ForceCommand internal-sftp
    AllowTcpForwarding no
 #End of Match
-" >> /etc/ssh/sshd_config
+" >> $SSH_CONF_FILE
    service sshd reload #reload configuration
 }
 
@@ -112,11 +114,11 @@ function remove_sftp_jail {
       return 0 #exit
    fi
    # Make sure chroot jail exists:
-   if ! grep -iq "^Match User \"$user\"" /etc/ssh/sshd_config ; then #chroot jail does not exists
-      echo "Chroot jail could not be found for the specified user."
+   if ! grep -iq "^Match User \"$user\"" $SSH_CONF_FILE ; then #chroot jail does not exists
+      echo "Chroot jail could not be found for the user \"$user\"."
       return 0 # exit
    fi
    # Delete jail configuration:
-   sed -i -e "/^Match User \"$user\"$/,/^#End of Match$/d" /etc/ssh/sshd_config #remove lines from "Match User $user" to first "#End of Match"
+   sed -i -e "/^Match User \"$user\"$/,/^#End of Match$/d" $SSH_CONF_FILE #remove lines from "Match User $user" to first "#End of Match"
    service sshd reload #reload configuration
 }

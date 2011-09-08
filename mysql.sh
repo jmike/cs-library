@@ -187,7 +187,7 @@ $MYSQL_LOG_DIR/slow.log {
    chkconfig --level 35 mysqld on
    service mysqld start #start daemon for the first time
    # Set firewall:
-   allow_tcp $MYSQL_PORT
+   allow tcp $MYSQL_PORT
    # Collect garbage:
    cd ~
    rm -rf mysql*
