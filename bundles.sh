@@ -49,6 +49,9 @@ function set_basic_node {
    set_public_ip $2 $3 $4
    set_private_ip $5 $6
    restart_network
+   set_domain "members.linode.com" #change this if you are not hosted in linode
+   set_search_list "members.linode.com" #change this if you are not hosted in linode
+   set_resolver_ns "109.74.192.20" "109.74.193.20" "109.74.194.20" #change this if you are not hosted in linode
    set_dns_resolver
    restart_network #yet again
    # Update & install extras:
