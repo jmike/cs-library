@@ -6,7 +6,11 @@ i.e. provisioning websites, installing services, hardening daemons, etc.
 FILE USAGE
 **********
 sudo -s
-source <file> <parameters>, i.e. source networking.sh
+cd ~
+wget https://github.com/jmike/cs-library/tarball/master
+tar -zxf jmike-cs-library*.tar.gz
+cd jmike-cs-library*
+source <file> <parameters>
 <function>
 exit
 

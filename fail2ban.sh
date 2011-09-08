@@ -50,7 +50,7 @@ function install_fail2ban {
    chmod u=rw,g=r,o= $FAIL2BAN_CONF_DIR/jail.conf
    # Set logs:
    touch $FAIL2BAN_LOG_DIR/fail2ban.log
-   chmod u=rw,g=,o $FAIL2BAN_LOG_DIR/fail2ban.log
+   chmod u=rw,g=,o= $FAIL2BAN_LOG_DIR/fail2ban.log
    # Integrate into logrotate:
    echo -n \
 "$FAIL2BAN_LOG_DIR/fail2ban.log {

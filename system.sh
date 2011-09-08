@@ -23,7 +23,7 @@ function update {
 # Installs extra packages and repositories.
 function install_extras {
    # Install EPEL repository:
-   case $(cat /etc/*-release | sed -e "s|^.*\(CentOS\).*\([0-9]\+\.[0-9]\+\).*$|\1 \2|") in #in case distro name is ..
+   case $(cat $(ls /etc/*-release | head -1) | sed -e "s|^.*\(CentOS\).*\([0-9]\+\.[0-9]\+\).*$|\1 \2|") in #in case distro name is ..
       'CentOS 6.0')
          rpm -Uvh http://download.fedora.redhat.com/pub/epel/6/x86_64/epel-release-6-5.noarch.rpm
          ;;
