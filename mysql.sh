@@ -34,6 +34,7 @@ MYSQL_PORT=${1-'3306'}
 # $1 password for MySQL root account {REQUIRED}
 function install_mysql {
    local password="$1"
+   # Make sure password is specified:
    if [ -z $password ] ; then #password not specified
       echo "MySQL root password must be specified."
       return 0 #exit
@@ -137,6 +138,7 @@ innodb_lock_wait_timeout=50
 #binlog-format=format=MIXED
 #max_binlog_size=1073741824
 #expire_logs_days=7
+#sync_binlog=1
 
 [mysqldump]
 quick
@@ -233,7 +235,7 @@ $MYSQL_LOG_DIR/slow.log {
 # Mysql server should be installed beforehand.
 function uninstall_mysql {
    # Unset firewall:
-   deny_tcp $MYSQL_PORT
+   deny tcp $MYSQL_PORT
    # Unset daemon:
    service mysqld stop #stop daemon
    chkconfig mysqld off
@@ -263,19 +265,41 @@ function uninstall_mysql {
    echo "MySQL server successfully uninstalled."
 }
 
+function add_mysql_user {
+   echo "Under Construction!"
+}
+
+function remove_mysql_user {
+   echo "Under Construction!"
+}
+
+function add_mysql_db {
+   echo "Under Construction!"
+}
+
+function remove_mysql_db {
+   echo "Under Construction!"
+}
+
 # Sets locally installed MySQL server as master.
 # $1 password for MySQL root account {REQUIRED}
+# $2 server unique id number, ranges between 1 and 4294967295, defaults to INET_ATON(Private IP address) {OPTIONAL}
 function set_mysql_master {
    local password="$1"
+   local server_id="$2"
+   # Make sure password is specified:
    if [ -z $password ] ; then #password not specified
       echo "MySQL root password must be specified."
       return 0 #exit
    fi
-   # Parse primary private IP to get unique server id number:
-   local server_id=$(mysql --user=root --password="$password" --silent --skip-column-names --execute="SELECT INET_ATON('$(get_private_primary_ip)');")
-   if [ -z $server_id ] ; then #server id not valid
-      echo "Server id could not be determined."
-      return 0 #exit
+   # Determine server unique id number:
+   if [ -z $server_id ] ; then #server id not specified
+      # Convert private IP address to number using MySQL INET_ATON internal function.
+      server_id=$(mysql --user=root --password="$password" --silent --skip-column-names --execute="SELECT INET_ATON('$(get_private_primary_ip)');") 
+      if [ -z $server_id ] ; then #server id still invalid
+         echo "Server id could not be determined. Please specify a number between 1 and 4294967295."
+         return 0 #exit
+      fi
    fi
    # Configure MySQL as master:
    sed -i -e "s|^#\?\(server-id\).*$|\1=$server_id|" $MYSQL_CONF_FILE #set unique server id
@@ -283,9 +307,31 @@ function set_mysql_master {
    sed -i -e "s|^#\?\(binlog-format\).*$|\1=MIXED|" $MYSQL_CONF_FILE #set binlog format to MIXED
    sed -i -e "s|^#\?\(max_binlog_size\).*$|\1=1073741824|" $MYSQL_CONF_FILE #set max binlog size to 1GB
    sed -i -e "s|^#\?\(expire_logs_days\).*$|\1=7|" $MYSQL_CONF_FILE #delete binlogs older than 7 days
+   sed -i -e "s|^#\?\(sync_binlog\).*$|\1=1|" $MYSQL_CONF_FILE #safest choice in the event of a crash for innodb transactions
+   echo "MySQL server $server_id is set as master replica." #echo success message
    service mysqld restart #restart server
 }
 
+# Sets locally installed MySQL server as master.
+# $1 password for MySQL root account {REQUIRED}
+# $2 server unique id number, ranges between 1 and 4294967295, defaults to INET_ATON(Private IP address) {OPTIONAL}
 function set_mysql_slave {
-   echo "under construction"
+   local password="$1"
+   local server_id="$2"
+   # Make sure password is specified:
+   if [ -z $password ] ; then #password not specified
+      echo "MySQL root password must be specified."
+      return 0 #exit
+   fi
+   # Determine server unique id number:
+   if [ -z $server_id ] ; then #server id not specified
+      # Convert private IP address to number using MySQL INET_ATON internal function.
+      server_id=$(mysql --user=root --password="$password" --silent --skip-column-names --execute="SELECT INET_ATON('$(get_private_primary_ip)');") 
+      if [ -z $server_id ] ; then #server id still invalid
+         echo "Server id could not be determined. Please specify a number between 1 and 4294967295."
+         return 0 #exit
+      fi
+   fi
+   # Configure MySQL as slave:
+   sed -i -e "s|^#\?\(server-id\).*$|\1=$server_id|" $MYSQL_CONF_FILE #set unique server id
 }

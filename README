@@ -8,8 +8,8 @@ FILE USAGE
 ssh root@192.74.152.13 -p 22
 sudo -s
 cd ~
-wget --output-document=cs-library.tar.gz https://github.com/jmike/cs-library/tarball/master
-tar -zxf cs-library.tar.gz
+wget --output-document=jmike-cs-library.tar.gz https://github.com/jmike/cs-library/tarball/master
+tar -zxf jmike-cs-library.tar.gz
 cd jmike-cs-library*
 source <file> <parameters>
 <function>
