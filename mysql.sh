@@ -22,6 +22,7 @@ MYSQL_URI="http://dev.mysql.com/get/Downloads/MySQL-5.5/mysql-5.5.15-linux2.6-x8
 MYSQL_USER="mysql"
 MYSQL_GROUP="mysql"
 MYSQL_HOME_DIR="/opt/mysql"
+MYSQL_CONF_FILE="/etc/my.cnf"
 MYSQL_LOG_DIR="/var/log/mysql"
 MYSQL_STATE_DIR="/var/run/mysql"
 MYSQL_PORT="$1"
@@ -47,35 +48,39 @@ function install_mysql {
    if ! grep -iq "^$MYSQL_USER" /etc/passwd ; then #user does not exist
       useradd -M -r --shell /sbin/nologin --home-dir $MYSQL_HOME_DIR --gid $MYSQL_GROUP $MYSQL_USER
    fi
+   # Create directories & set appropriate permissions:
+   mkdir -m u=rwx,g=rx,o=rx $MYSQL_HOME_DIR
+   mkdir -m u=rwx,g=rwx,o= $MYSQL_LOG_DIR
+   chown $MYSQL_USER $MYSQL_LOG_DIR
+   mkdir -m u=rwx,g=rwx,o= $MYSQL_STATE_DIR
+   chown $MYSQL_USER $MYSQL_STATE_DIR   
    # Donwload, compile & install files:
    cd ~
    wget $MYSQL_URI #obtain precompiled binary files
    tar -zxf mysql*.tar.gz #unpack gzip archive
-   mkdir -m u=rwx,g=rx,o=rx $MYSQL_HOME_DIR #create home directory
    cd mysql*
    mv --force --target-directory=$MYSQL_HOME_DIR * #move files to home directory
-   # Create state directory:
-   mkdir -m u=rwx,g=rwx,o= $MYSQL_STATE_DIR
-   chown $MYSQL_USER $MYSQL_STATE_DIR
-   # Create log directory:
-   mkdir -m u=rwx,g=rwx,o= $MYSQL_LOG_DIR
-   chown $MYSQL_USER $MYSQL_LOG_DIR
-   # Make binaries availiable to PATH:
-   PATH=$PATH:$MYSQL_HOME_DIR/bin
-   export PATH
-   echo -e "PATH=\$PATH:$MYSQL_HOME_DIR/bin\n\
-export PATH" > /etc/profile.d/mysql.sh #make changes to PATH permanent for all users
-   chmod u=rw,g=r,o=r /etc/profile.d/mysql.sh
-   # Disable MySQL history log:
-   MYSQL_HISTFILE=/dev/null
-   export MYSQL_HISTFILE
-   echo -e "MYSQL_HISTFILE=/dev/null\nexport MYSQL_HISTFILE\n" >> /etc/profile.d/mysql.sh #make changes to MYSQL_HISTFILE permanent for all users
-   # Data folder must be owned by MySQL user + group
+   # Data folder must be owned by MySQL user + groupL
    chown --recursive $MYSQL_USER:$MYSQL_GROUP $MYSQL_HOME_DIR/data
    chmod o= $MYSQL_HOME_DIR/data
    # Plugin folder should not be writable by MySQL user:
    chown --recursive root:root $MYSQL_HOME_DIR/lib/plugin
    chmod o= $MYSQL_HOME_DIR/lib/plugin
+   # Make binaries availiable to PATH:
+   PATH=$PATH:$MYSQL_HOME_DIR/bin
+   export PATH
+   echo -n \
+"PATH=\$PATH:$MYSQL_HOME_DIR/bin
+export PATH
+" > /etc/profile.d/mysql.sh #make changes permanent for all users
+   chmod u=rw,g=r,o=r /etc/profile.d/mysql.sh
+   # Disable MySQL history log:
+   MYSQL_HISTFILE=/dev/null
+   export MYSQL_HISTFILE
+   echo -n \
+"MYSQL_HISTFILE=/dev/null
+export MYSQL_HISTFILE
+" >> /etc/profile.d/mysql.sh #make changes permanent for all users
    # Initialize grant tables and "test" databases:
    $MYSQL_HOME_DIR/scripts/mysql_install_db \
 --basedir=$MYSQL_HOME_DIR \
@@ -140,8 +145,8 @@ write_buffer = 2M
 
 [mysqlhotcopy]
 interactive-timeout
-" > /etc/my.cnf
-   chmod u=rw,g=r,o= /etc/my.cnf
+" > $MYSQL_CONF_FILE
+   chmod u=rw,g=r,o= $MYSQL_CONF_FILE
    # Set logs:
    touch $MYSQL_LOG_DIR/error.log #create error log
    chmod u=rw,g=rw,o= $MYSQL_LOG_DIR/error.log
@@ -216,7 +221,7 @@ function uninstall_mysql {
    # Delete run directory:
    rm -rf $MYSQL_STATE_DIR
    # Unset configuration file(s):
-   rm -f /etc/my.cnf
+   rm -f $MYSQL_CONF_FILE
    # Remove binaries from PATH:
    PATH=$(echo $PATH | sed -e "s|:$MYSQL_HOME_DIR/bin||")
    export PATH
