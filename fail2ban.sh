@@ -15,11 +15,11 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-FAIL2BAN_URI="http://sourceforge.net/projects/fail2ban/files/fail2ban-stable/fail2ban-0.8.4/fail2ban-0.8.4.tar.bz2/download"
-FAIL2BAN_HOME_DIR="/opt/fail2ban"
-FAIL2BAN_CONF_DIR="/etc/fail2ban"
-FAIL2BAN_LOG_DIR="/var/log/fail2ban"
-FAIL2BAN_STATE_DIR="/var/run/fail2ban"
+FAIL2BAN_URI='http://sourceforge.net/projects/fail2ban/files/fail2ban-stable/fail2ban-0.8.4/fail2ban-0.8.4.tar.bz2/download'
+FAIL2BAN_HOME_DIR='/opt/fail2ban'
+FAIL2BAN_CONF_DIR='/etc/fail2ban'
+FAIL2BAN_LOG_DIR='/var/log/fail2ban'
+FAIL2BAN_STATE_DIR='/var/run/fail2ban'
 
 # Installs fail2ban to block automated attempts to compromise the system.
 # Please refer to http://www.fail2ban.org for further study.
@@ -106,7 +106,7 @@ function enable_fail2ban_jail {
 # $2 the type of the jail that user will be unblocked from, "SSH" by default. {OPTIONAL}
 function remove_banned_host {
    local host="$1"
-   local type=${1-"SSH"}
+   local type=${1-'SSH'}
    # Make sure host is specified:
    if [ -z $host ] ; then #host not specified
       echo "IP address or hostname must be specified."

@@ -15,6 +15,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+FW_CHAIN='Chuck_Norris' #spaces not valid here
+# Chuck Norris has a website, is called the internet :)
+
 # Initializes iptables with basic firewall rules.
 function set_firewall {
    # Configure:
@@ -38,12 +41,12 @@ function set_firewall {
    iptables --table mangle --flush #delete all predefined rules in "mangle" table
    iptables --delete-chain #delete all user-defined chains in "filter" table
    iptables --policy OUTPUT ACCEPT #set new policy: allow traffic which originated from our system (OUTPUT)
-   iptables --new-chain Chuck_Norris #create new chain in "filter" table
-   iptables --append INPUT --jump Chuck_Norris #handle traffic which is entering our system (INPUT)
-   iptables --append FORWARD --jump Chuck_Norris #handle traffic which is being routed between two network interfaces on our firewall (FORWARD)
-   iptables --append Chuck_Norris --protocol icmp --icmp-type 255 --jump ACCEPT #Chuck Norris allows ping
-   iptables --append Chuck_Norris --match state --state ESTABLISHED,RELATED --jump ACCEPT #Chuck Norris allows connections that are already established
-   iptables --append Chuck_Norris --jump REJECT --reject-with icmp-host-prohibited #Chuck Norris denies everything else
+   iptables --new-chain $FW_CHAIN #create new chain in "filter" table
+   iptables --append INPUT --jump $FW_CHAIN #handle traffic which is entering our system (INPUT)
+   iptables --append FORWARD --jump $FW_CHAIN #handle traffic which is being routed between two network interfaces on our firewall (FORWARD)
+   iptables --append $FW_CHAIN --protocol icmp --icmp-type 255 --jump ACCEPT
+   iptables --append $FW_CHAIN --match state --state ESTABLISHED,RELATED --jump ACCEPT
+   iptables --append $FW_CHAIN --jump REJECT --reject-with icmp-host-prohibited
    # Save + restart:
    service iptables save
    service iptables restart
@@ -93,11 +96,11 @@ function allow {
       fi
    done
    # Append rule to iptables:
-   iptables --delete Chuck_Norris --jump REJECT --reject-with icmp-host-prohibited
+   iptables --delete $FW_CHAIN --jump REJECT --reject-with icmp-host-prohibited
    for port in "$@"; do
-      iptables --append Chuck_Norris --match state --state NEW --match $protocol --protocol $protocol --destination-port $port --jump ACCEPT
+      iptables --append $FW_CHAIN --match state --state NEW --match $protocol --protocol $protocol --destination-port $port --jump ACCEPT
    done
-   iptables --append Chuck_Norris --jump REJECT --reject-with icmp-host-prohibited #Chuck Norris denies everything else
+   iptables --append $FW_CHAIN --jump REJECT --reject-with icmp-host-prohibited
    # Save + restart:
    service iptables save
    service iptables restart
@@ -132,7 +135,7 @@ function deny {
       fi    
    done
    # Delete rule from iptables:
-   iptables --delete Chuck_Norris --match state --state NEW --match $protocol --protocol $protocol --destination-port $port --jump ACCEPT
+   iptables --delete $FW_CHAIN --match state --state NEW --match $protocol --protocol $protocol --destination-port $port --jump ACCEPT
    # Save + restart:
    service iptables save
    service iptables restart

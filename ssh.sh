@@ -17,14 +17,9 @@
 
 source firewall.sh
 
-SSH_CONF_FILE="/etc/ssh/sshd_config"
-SSH_PID_FILE="/var/run/sshd.pid"
-SSH_PORT="$1"
-
-if [ -z $SSH_PORT ] ; then #SSH port not specified
-   echo "SSH port must be specified."
-   exit 1
-fi
+SSH_CONF_FILE='/etc/ssh/sshd_config'
+SSH_PID_FILE='/var/run/sshd.pid'
+SSH_PORT=${1-'22'}
 
 # Configures and hardens the SSH daemon.
 # Please note that Red Hat has a policy of backporting security patches from the latest releases into the current distribution version. Thus SSH daemon may seem outdated, while it is not. As long as the latest updates are applied to system, the SSH daemon will be fully patched.

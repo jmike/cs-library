@@ -18,22 +18,19 @@
 source firewall.sh
 source network.sh
 
-MYSQL_URI="http://dev.mysql.com/get/Downloads/MySQL-5.5/mysql-5.5.15-linux2.6-x86_64.tar.gz/from/http://www.mirrorservice.org/sites/ftp.mysql.com/"
-MYSQL_USER="mysql"
-MYSQL_GROUP="mysql"
-MYSQL_HOME_DIR="/opt/mysql"
-MYSQL_CONF_FILE="/etc/my.cnf"
-MYSQL_LOG_DIR="/var/log/mysql"
-MYSQL_STATE_DIR="/var/run/mysql"
-MYSQL_PORT="$1"
-
-if [ -z $MYSQL_PORT ] ; then #MYSQL port not specified
-   echo "MYSQL port must be specified."
-   exit 1
-fi
+MYSQL_URI='http://dev.mysql.com/get/Downloads/MySQL-5.5/mysql-5.5.15-linux2.6-x86_64.tar.gz/from/http://www.mirrorservice.org/sites/ftp.mysql.com/'
+MYSQL_USER='mysql'
+MYSQL_GROUP='mysql'
+MYSQL_HOME_DIR='/opt/mysql'
+MYSQL_CONF_FILE='/etc/my.cnf'
+MYSQL_LOG_DIR='/var/log/mysql'
+MYSQL_STATE_DIR='/var/run/mysql'
+MYSQL_PORT=${1-'3306'}
 
 # Installs MySQL relational database.
-# Please refer to http://dev.mysql.com/doc/index.html for further study.
+# Please refer to http://dev.mysql.com/doc/refman/5.5/en/server-logs.html for further study in MySQL Logs.
+# Please refer to http://dev.mysql.com/doc/refman/5.5/en/security.html for further study in MySQL Security.
+# Please refer to http://dev.mysql.com/doc/refman/5.5/en/replication.html for further study in MySQL Replication.
 # $1 password for MySQL root account {REQUIRED}
 function install_mysql {
    local password="$1"
@@ -60,12 +57,12 @@ function install_mysql {
    tar -zxf mysql*.tar.gz #unpack gzip archive
    cd mysql*
    mv --force --target-directory=$MYSQL_HOME_DIR * #move files to home directory
-   # Data folder must be owned by MySQL user + groupL
-   chown --recursive $MYSQL_USER:$MYSQL_GROUP $MYSQL_HOME_DIR/data
-   chmod o= $MYSQL_HOME_DIR/data
+   # Data folder must be owned by MySQL user
+   chown --recursive $MYSQL_USER $MYSQL_HOME_DIR/data
+   chmod u=rwx,g=rx,o= $MYSQL_HOME_DIR/data
    # Plugin folder should not be writable by MySQL user:
    chown --recursive root:root $MYSQL_HOME_DIR/lib/plugin
-   chmod o= $MYSQL_HOME_DIR/lib/plugin
+   chmod u=rwx,g=rx,o= $MYSQL_HOME_DIR/lib/plugin
    # Make binaries availiable to PATH:
    PATH=$PATH:$MYSQL_HOME_DIR/bin
    export PATH
@@ -89,44 +86,57 @@ export MYSQL_HISTFILE
    # Configure:
    echo -n \
 "[client]
-port=$port
+port=$MYSQL_PORT
 socket=$MYSQL_STATE_DIR/mysql.sock
 
 [mysqld]
 user=$MYSQL_USER #run daemon under dedicated user account
-port=$port
+port=$MYSQL_PORT
 socket=$MYSQL_STATE_DIR/mysql.sock
 basedir=$MYSQL_HOME_DIR
 datadir=$MYSQL_HOME_DIR/data #set data directory
-pid_file=$MYSQL_STATE_DIR/mysql.pid
-log-error=$MYSQL_LOG_DIR/error.log
-log-warnings=1 #print out warnings such as 'aborted connection' to the error log
-slow-query-log=1
-slow_query_log_file=$MYSQL_LOG_DIR/slow.log
+pid_file=$MYSQL_STATE_DIR/mysql.pid #set PID file
+# LOG SETTINGS:
+log-output=FILE #output general & slow query logs to files
+general-log=1 #enable general query logging
+general_log_file=$MYSQL_LOG_DIR/mysql.log #specify general query log file
+slow-query-log=1 #enable slow query logging
+long_query_time=10 #after 10 secs query is considered as slow
+slow_query_log_file=$MYSQL_LOG_DIR/slow.log #specify slow query log file
+log-error=$MYSQL_LOG_DIR/error.log #set error log file
+log-warnings=1 #print out warnings, such as 'aborted connection', to the error log
+# SECURITY SETTINGS:
 skip-symbolic-links #do not permit the use of symlinks to tables
 skip-name-resolve #do not resolve host names when checking client connections
 skip-external-locking
 safe-user-create=1 #a user cannot create new MySQL users using the GRANT statement unless she has INSERT privilege for mysql.user table
 secure-auth=1 #disallow authentication by clients that attempt to use accounts that have old (pre-4.1) passwords
-key_buffer_size = 256M
-max_allowed_packet = 1M
-table_open_cache = 256
-sort_buffer_size = 1M
-read_buffer_size = 1M
-read_rnd_buffer_size = 4M
-myisam_sort_buffer_size = 64M
-thread_cache_size = 8
-query_cache_size= 16M
-thread_concurrency = 8 #set to (number of CPU's)*2
-innodb_data_home_dir = /opt/mysql/data
-innodb_data_file_path = ibdata1:10M:autoextend
-innodb_log_group_home_dir = /opt/mysql/data
-innodb_buffer_pool_size = 256M #set up to 50-80% of RAM
-innodb_additional_mem_pool_size = 20M
-innodb_log_file_size = 64M #set to 25% of innodb_buffer_pool_size
-innodb_log_buffer_size = 8M
-innodb_flush_log_at_trx_commit = 1
-innodb_lock_wait_timeout = 50
+# ENGINE SETTINGS:
+key_buffer_size=256M
+max_allowed_packet=1M
+table_open_cache=256
+sort_buffer_size=1M
+read_buffer_size=1M
+read_rnd_buffer_size=4M
+myisam_sort_buffer_size=64M
+thread_cache_size=8
+query_cache_size=16M
+thread_concurrency=8 #set to (number of CPU's)*2
+innodb_data_home_dir=/opt/mysql/data
+innodb_data_file_path=ibdata1:10M:autoextend
+innodb_log_group_home_dir=/opt/mysql/data
+innodb_buffer_pool_size=256M #set up to 50-80% of RAM
+innodb_additional_mem_pool_size=20M
+innodb_log_file_size=64M #set to 25% of innodb_buffer_pool_size
+innodb_log_buffer_size=8M
+innodb_flush_log_at_trx_commit=1 #important for binary logging
+innodb_lock_wait_timeout=50
+# REPLICATION SETTINGS:
+#server-id=0
+#log-bin=mysql-bin
+#binlog-format=format=MIXED
+#max_binlog_size=1073741824
+#expire_logs_days=7
 
 [mysqldump]
 quick
@@ -156,7 +166,20 @@ interactive-timeout
    chown $MYSQL_USER $MYSQL_LOG_DIR/slow.log
    # Integrate into logrotate:
    echo -n \
-"$MYSQL_LOG_DIR/error.log {
+"$MYSQL_LOG_DIR/mysql.log {
+   daily
+   rotate 40
+   extension log
+   dateext
+   dateformat %Y%m%d
+   compress
+   delaycompress
+   missingok
+   noolddir
+   create 0640 $MYSQL_USER $MYSQL_GROUP
+}
+
+$MYSQL_LOG_DIR/error.log {
    daily
    rotate 40
    extension log
@@ -184,9 +207,11 @@ $MYSQL_LOG_DIR/slow.log {
    chmod u=rw,g=r,o= /etc/logrotate.d/mysql
    # Set daemon:
    /bin/cp -rf $MYSQL_HOME_DIR/support-files/mysql.server /etc/init.d/mysqld #copy init.d script
-   sed -i -e "s|^\(basedir\)\(\s\?=\s\?\)\(.*\)$|\1=$MYSQL_HOME_DIR|" /etc/init.d/mysqld #set installation home directory
-   sed -i -e "s|^\(datadir\)\(\s\?=\s\?\)\(.*\)$|\1=$MYSQL_HOME_DIR/data|" /etc/init.d/mysqld #set data directory
-   sed -i -e "s|^\(mysqld_pid_file_path\)\(\s\?=\s\?\)\(.*\)$|\1=$MYSQL_STATE_DIR/mysql.pid|" /etc/init.d/mysqld #set PID file
+   sed -i -e "s|^\(basedir\)\(\s\?=\s\?\)\(.*\)$|\1='$MYSQL_HOME_DIR'|" /etc/init.d/mysqld #set installation home directory
+   sed -i -e "s|^\(datadir\)\(\s\?=\s\?\)\(.*\)$|\1='$MYSQL_HOME_DIR/data'|" /etc/init.d/mysqld #set data directory
+   sed -i -e "s|^\(lockdir\)\(\s\?=\s\?\)\(.*\)$|\1='$MYSQL_STATE_DIR'|" /etc/init.d/mysqld #set lock directory
+   sed -i -e "s|^\(lock_file_path\)\(\s\?=\s\?\)\(.*\)$|\1=\"\$lockdir/mysql.lock\"|" /etc/init.d/mysqld #set lock file
+   sed -i -e "s|^\(mysqld_pid_file_path\)\(\s\?=\s\?\)\(.*\)$|\1='$MYSQL_STATE_DIR/mysql.pid'|" /etc/init.d/mysqld #set PID file
    chmod u=rwx,g=rx,o= /etc/init.d/mysqld #make executable
    chkconfig --add mysqld
    chkconfig --level 35 mysqld on
@@ -238,9 +263,27 @@ function uninstall_mysql {
    echo "MySQL server successfully uninstalled."
 }
 
+# Sets locally installed MySQL server as master.
+# $1 password for MySQL root account {REQUIRED}
 function set_mysql_master {
-   echo "under construction"
-   #var=$(mysql --user=root --password="" --silent --skip-column-names --execute="SELECT INET_ATON('$(get_private_primary_ip)');")
+   local password="$1"
+   if [ -z $password ] ; then #password not specified
+      echo "MySQL root password must be specified."
+      return 0 #exit
+   fi
+   # Parse primary private IP to get unique server id number:
+   local server_id=$(mysql --user=root --password="$password" --silent --skip-column-names --execute="SELECT INET_ATON('$(get_private_primary_ip)');")
+   if [ -z $server_id ] ; then #server id not valid
+      echo "Server id could not be determined."
+      return 0 #exit
+   fi
+   # Configure MySQL as master:
+   sed -i -e "s|^#\?\(server-id\).*$|\1=$server_id|" $MYSQL_CONF_FILE #set unique server id
+   sed -i -e "s|^#\?\(log-bin\).*$|\1=mysql-bin|" $MYSQL_CONF_FILE #set the base-name of binary logs (extensions such as .log do not apply)
+   sed -i -e "s|^#\?\(binlog-format\).*$|\1=MIXED|" $MYSQL_CONF_FILE #set binlog format to MIXED
+   sed -i -e "s|^#\?\(max_binlog_size\).*$|\1=1073741824|" $MYSQL_CONF_FILE #set max binlog size to 1GB
+   sed -i -e "s|^#\?\(expire_logs_days\).*$|\1=7|" $MYSQL_CONF_FILE #delete binlogs older than 7 days
+   service mysqld restart #restart server
 }
 
 function set_mysql_slave {
