@@ -239,9 +239,10 @@ function uninstall_mysql {
 }
 
 function set_mysql_master {
+   echo "under construction"
    #var=$(mysql --user=root --password="" --silent --skip-column-names --execute="SELECT INET_ATON('$(get_private_primary_ip)');")
 }
 
 function set_mysql_slave {
-   #
+   echo "under construction"
 }
