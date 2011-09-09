@@ -102,12 +102,12 @@ function install_httpd {
    # Make sure document root directory is specified:
    if [ -z $root_dir ] ; then
       echo "HTTPD's document root directory must be specified."
-      return 0 #exit
+      return 1 #exit
    fi
    # Make sure document root directory exists:
    if [ ! -d $root_dir ]; then
       echo "Directory \"$root_dir\" does not exist."
-      return 0 #exit
+      return 1 #exit
    fi
    # Install prerequisites:
    yum -y install gcc libtool-ltdl libtool-ltdl-devel openssl openssl-devel pcre pcre-devel
@@ -291,27 +291,27 @@ function add_httpd_site {
    # Make sure site's name is specified:
    if [ -z $name ] ; then
       echo "Site's domain name must be specified."
-      return 0 #exit
+      return 1 #exit
    fi
    # Make sure site's root directory is specified:
    if [ -z $root_dir ] ; then
       echo "Site's root directory must be specified."
-      return 0 #exit
+      return 1 #exit
    fi
    # Make sure site's root directory exists:
    if [ ! -d $root_dir ]; then
       echo "Directory \"$root_dir\" does not exist."
-      return 0 #exit
+      return 1 #exit
    fi
    # Make sure site's content directory exists:
    if [ ! -d $root_dir/content ]; then
       echo "Directory \"$root_dir/content\" does not exist."
-      return 0 #exit
+      return 1 #exit
    fi
    # Make sure site's log directory exists:
    if [ ! -d $root_dir/log ]; then
       echo "Directory \"$root_dir/log\" does not exist."
-      return 0 #exit
+      return 1 #exit
    fi
    # Create site configuration file:
    echo -n \
@@ -328,7 +328,7 @@ function add_httpd_site {
    if [ $? -gt 0 ] ; then #oh my, exit status implies there was an error
       rm -f $HTTPD_CONF_DIR/sites/$name.conf #remove flawed config file
       echo "Site not added. Configuration file contains errors."
-      return 0 #exit
+      return 1 #exit
    fi
    # Create log files:
    touch $root_dir/log/error.log
@@ -373,12 +373,12 @@ function remove_httpd_site {
    # Make sure site's name is specified:
    if [ -z $name ] ; then
       echo "Site's domain name must be specified."
-      return 0 #exit
+      return 1 #exit
    fi
    # Make sure site's configuration exists:
    if [ ! -f $HTTPD_CONF_DIR/sites/$name.conf ]; then
       echo "Configuration file for \"$name\" does not exist."
-      return 0 #exit
+      return 1 #exit
    fi
    # Remove site:
    rm -f $HTTPD_CONF_DIR/sites/$name.conf #remove config file
@@ -395,17 +395,17 @@ function add_httpd_alias {
    # Make sure alias is specified:
    if [ -z $alias ] ; then
       echo "Alias' domain name must be specified."
-      return 0 #exit
+      return 1 #exit
    fi
    # Make sure target is specified:
    if [ -z $target ] ; then
       echo "Target domain name must be specified."
-      return 0 #exit
+      return 1 #exit
    fi
    # Make sure target of the alias exists:
    if [ -z "$(sed -n "/^\s*ServerName $target$/=" $HTTPD_CONF_DIR/sites/*.conf)" ] ; then #oh my, target hostname does not exist
       echo "Target domain name \"$target\" does not exist."
-      return 0 #exit
+      return 1 #exit
    fi
    # Make sure alias is not already in use:
    sed -i -e "/^\s*ServerAlias $alias$/d" $HTTPD_CONF_DIR/sites/*.conf #delete alias directives if found
@@ -423,12 +423,12 @@ function remove_httpd_alias {
    # Make sure alias is specified:
    if [ -z $alias ] ; then
       echo "Alias' domain name must be specified."
-      return 0 #exit
+      return 1 #exit
    fi
    # Make sure alias exists:
    if [ -z "$(sed -n "/^\s*ServerAlias $alias$/=" $HTTPD_CONF_DIR/sites/*.conf)" ] ; then #oh my, alias hostname does not exist
       echo "Alias hostname \"$alias\" does not exist."
-      return 0 #exit
+      return 1 #exit
    fi
    # Remove alias from config files:
    sed -i -e "/^\s*ServerAlias $alias$/d" $HTTPD_CONF_DIR/sites/*.conf #delete alias directives if found

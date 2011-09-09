@@ -55,7 +55,7 @@ $SSH_CONF_FILE #log messages of INFO level (or higher) in /var/log/secure
    service sshd reload #restart service
    # Set firewall:
    allow tcp $SSH_PORT
-   return 1 #done
+   return 0 #done
 }
 
 # Imprisons the specified user in a SFTP chroot jail.
@@ -68,22 +68,22 @@ function add_sftp_jail {
    # Make sure user is specified:
    if [ -z $user ] ; then #user not specified
       echo "The name of the user that will be imprisoned must be specified."
-      return 0 #exit
+      return 1 #exit
    fi
    # Make sure jail is specified:
    if [ -z $jail ] ; then #jail not specified
       echo "The directory that user will be imprisoned into must be specified."
-      return 0 #exit
+      return 1 #exit
    fi
    # Make sure user exists:
    if ! grep -iq "^$user" /etc/passwd ; then #user does not exist
       echo "The specified user \"$user\" does not exist."
-      return 0 #exit
+      return 1 #exit
    fi
    # Make sure jail directory exists:
    if [ ! -d "$jail" ]; then
       echo "The specified chroot directory \"$jail\" does not exist."
-      return 0 #exit
+      return 1 #exit
    fi
    # Make sure chroot jail does not already exist:
    if grep -iq "^Match User \"$user\"" $SSH_CONF_FILE ; then #chroot jail already exists in config file
@@ -98,7 +98,7 @@ function add_sftp_jail {
 #End of Match
 " >> $SSH_CONF_FILE
    service sshd reload #reload configuration
-   return 1 #done
+   return 0 #done
 }
 
 # Releases the specified user from her SFTP jail.
@@ -108,7 +108,7 @@ function remove_sftp_jail {
    # Make sure user is specified:
    if [ -z $user ] ; then #user not specified
       echo "The name of the user that will be released must be specified."
-      return 0 #exit
+      return 1 #exit
    fi
    # Make sure chroot jail exists:
    if ! grep -iq "^Match User \"$user\"" $SSH_CONF_FILE ; then #chroot jail does not exists
@@ -118,5 +118,5 @@ function remove_sftp_jail {
    # Delete jail configuration:
    sed -i -e "/^Match User \"$user\"$/,/^#End of Match$/d" $SSH_CONF_FILE #remove lines from "Match User $user" to first "#End of Match"
    service sshd reload #reload configuration
-   return 1 #done
+   return 0 #done
 }

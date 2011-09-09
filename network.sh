@@ -18,13 +18,13 @@
 # Returns the primary IP address assigned to public (eth0) interface.
 function get_primary_ip {
    echo $(ifconfig eth0 | awk -F: '/inet addr:/ { print $2 }' | awk '{ print $1 }')
-   return 1 #done
+   return 0 #done
 }
 
 # Returns the primary IP address assigned to private (eth0:1) interface.
 function get_private_primary_ip {
    echo $(ifconfig eth0:1 | awk -F: '/inet addr:/ { print $2 }' | awk '{ print $1 }')
-   return 1 #done
+   return 0 #done
 }
 
 # Returns the reverse DNS hostname of the specified IP address.
@@ -34,20 +34,20 @@ function get_rdns {
    # Make sure ip address is specified:
    if [ -z $ip_address ] ; then #ip address not specified
       echo "IP address must be specified."
-      return 0 #exit
+      return 1 #exit
    fi
    # Return reverse DNS hostname:
    if [ ! -e /usr/bin/host ] ; then
       yum -y install bind-utils > /dev/null #silently install bind-utils
    fi
    echo $(host $ip_address | awk '/pointer/ {print $5}' | sed 's/\.$//')
-   return 1 #done
+   return 0 #done
 } 
 
 # Returns the reverse DNS hostname of the primary IP address.
 function get_rdns_primary_ip {
    echo $(get_rdns $(get_primary_ip))
-   return 1 #done
+   return 0 #done
 }
 
 # Sets hostname to the specified value.
@@ -57,7 +57,7 @@ function set_hostname {
    # Make sure hostname is specified:
    if [ -z $name ] ; then #hostname not specified
       echo "Hostname must be specified."
-      return 0 #exit
+      return 1 #exit
    fi
    # Set hostname:
    hostname $name
@@ -79,7 +79,7 @@ function set_hostname {
 $(get_primary_ip) $(get_rdns_primary_ip) $name
 " > /etc/hosts #set hostname
    fi
-   return 1 #done
+   return 0 #done
 }
  
 # Sets the public IP interface.
@@ -94,17 +94,17 @@ function set_public_ip {
    # Make sure ip address is specified:
    if [ -z $ip_address ] ; then #ip address not specified
       echo "Public interface's IP address must be specified."
-      return 0 #exit
+      return 1 #exit
    fi
    # Make sure netmask is specified:
    if [ -z $netmask ] ; then #netmask not specified
       echo "Public interface's netmask must be specified."
-      return 0 #exit
+      return 1 #exit
    fi
    # Make sure gateway is specified:
    if [ -z $gateway ] ; then #gateway not specified
       echo "Public interface's gateway must be specified."
-      return 0 #exit
+      return 1 #exit
    fi
    # Set interface
    echo -n \
@@ -118,7 +118,7 @@ IPADDR=$ip_address
 NETMASK=$netmask
 GATEWAY=$gateway
 " > /etc/sysconfig/network-scripts/ifcfg-eth0
-   return 1 #done
+   return 0 #done
 }
 
 # Sets the private IP interface.
@@ -131,12 +131,12 @@ function set_private_ip {
    # Make sure ip address is specified:
    if [ -z $ip_address ] ; then #ip address not specified
       echo "Private interface's IP address must be specified."
-      return 0 #exit
+      return 1 #exit
    fi
    # Make sure netmask is specified:
    if [ -z $netmask ] ; then #netmask not specified
       echo "Private interface's netmask must be specified."
-      return 0 #exit
+      return 1 #exit
    fi
    # Set interface
    echo -n \
@@ -149,7 +149,7 @@ NM_CONTROLLED=no #tells NetworkManager not to manage this interface
 IPADDR=$ip_address
 NETMASK=$netmask
 " > /etc/sysconfig/network-scripts/ifcfg-eth0:1
-   return 1 #done
+   return 0 #done
 }
 
 # Sets the local domain name.
@@ -159,7 +159,7 @@ function set_domain {
    # Make sure name is specified:
    if [ -z $name ] ; then
       echo "Local domain name must be specified."
-      return 0 #exit
+      return 1 #exit
    fi
    # Set domain:
    sed -i \
@@ -167,7 +167,7 @@ function set_domain {
 -e "$ a \
 domain $name" \
 /etc/resolv.conf
-   return 1 #done
+   return 0 #done
 }
 
 # Sets the search list for hostnames lookup.
@@ -178,7 +178,7 @@ function set_search_list {
    # Make sure name is specified:
    if [ -z $name ] ; then
       echo "Search list must be specified."
-      return 0 #exit
+      return 1 #exit
    fi
    # Set domain:
    sed -i \
@@ -186,7 +186,7 @@ function set_search_list {
 -e "$ a \
 search $name" \
 /etc/resolv.conf
-   return 1 #done
+   return 0 #done
 }
 
 # Sets the nameserver(s) of the DNS resolver.
@@ -195,7 +195,7 @@ function set_resolver_ns {
    # Make sure at least one nameserver is specified:
    if [ $# -eq 0 ] ; then
       echo "At least one nameserver must be specified."
-      return 0 #exit      
+      return 1 #exit      
    fi
    # Remove old nameserver(s):
    sed -i -e "/^nameserver/d" /etc/resolv.conf
@@ -209,12 +209,12 @@ function set_resolver_ns {
 -e "$ a \
 options rotate" \
 /etc/resolv.conf
-   return 1 #done
+   return 0 #done
 }
 
 # Restarts the network service.
 function restart_network {
    service network restart
    service network status
-   return 1 #done
+   return 0 #done
 }

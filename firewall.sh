@@ -49,21 +49,21 @@ function set_firewall {
    # Save + restart:
    service iptables save
    service iptables restart
-   return 1 #done
+   return 0 #done
 }
 
-# Returns 1 if the specified port is valid, 0 if not.
+# Returns 0 if the specified port is valid, 1 if not.
 # $1 port number, positive integer ranging between 0 and 65535. {REQUIRED}
 function valid_port {
    local port="$1"
    if [[ $port =~ ^[0-9]+$ ]] ; then #port is an integer
       if [ $port -gt 65535 ] ; then #port number is invalid
-         return 0
-      else #port is valid
          return 1
+      else #port is valid
+         return 0
       fi
    else #port is not an integer
-      return 0
+      return 1
    fi
 }
 
@@ -76,23 +76,23 @@ function allow {
    # Make sure protocol is specified:
    if [ -z $protocol ] ; then
       echo "Network protocol must be specified. Availiable options: tcp, udp."
-      return 0 #exit
+      return 1 #exit
    fi
    # Make sure protocol is valid:
    if [ $protocol != "udp" -a $protocol != "tcp" ] ; then
       echo "Invalid network protocol \"$protocol\". Availiable options: tcp, udp."
-      return 0 #exit
+      return 1 #exit
    fi
    # Make sure at least one port is specified:
    if [ $# -eq 0 ] ; then
       echo "At least one port number must be specified."
-      return 0 #exit      
+      return 1 #exit      
    fi
    # Make sure the specified port(s) are valid:
    for port in "$@"; do
-      if valid_port $port == 0 ; then
+      if ! valid_port $port ; then
          echo "Invalid port $port. Please specify a number between 0 and 65535."
-         return 0 #exit
+         return 1 #exit
       fi
    done
    # Append rule to iptables:
@@ -104,7 +104,7 @@ function allow {
    # Save + restart:
    service iptables save
    service iptables restart
-   return 1 #done
+   return 0 #done
 }
 
 # Denies incoming traffic to the specified port(s) of the supplied network protocol.
@@ -116,29 +116,29 @@ function deny {
    # Make sure protocol is specified:
    if [ -z $protocol ] ; then
       echo "Network protocol must be specified. Availiable options: tcp, udp."
-      return 0 #exit
+      return 1 #exit
    fi
    # Make sure protocol is valid:
    if [ $protocol != "udp" -a $protocol != "tcp" ] ; then
       echo "Invalid network protocol \"$protocol\". Availiable options: tcp, udp."
-      return 0 #exit
+      return 1 #exit
    fi
    # Make sure at least one port is specified:
    if [ $# -eq 0 ] ; then
       echo "At least one port number must be specified."
-      return 0 #exit      
+      return 1 #exit      
    fi
    # Make sure the specified port(s) are valid:
    for port in "$@"; do
-      if valid_port $port == 0 ; then
+      if ! valid_port $port ; then
          echo "Invalid port $port. Please specify a number between 0 and 65535."
-         return 0 #exit         
-      fi    
+         return 1 #exit
+      fi
    done
    # Delete rule from iptables:
    iptables --delete $FW_CHAIN --match state --state NEW --match $protocol --protocol $protocol --destination-port $port --jump ACCEPT
    # Save + restart:
    service iptables save
    service iptables restart
-   return 1 #done
+   return 0 #done
 }

@@ -18,7 +18,7 @@
 # Updates currently installed system packages.
 function update {
    yum -y update
-   return 1 #done
+   return 0 #done
 }
 
 # Installs extra packages and repositories.
@@ -30,7 +30,7 @@ function install_extras {
          ;;
       *)
          echo "Distro not supported."
-         return 0 #exit
+         return 1 #exit
          ;;
    esac
    yum install -y yum-plugin-priorities #install priorities to enforce the ordered protection of repositories
@@ -66,7 +66,7 @@ make \
 automake \
 autoconf \
 bind-utils
-   return 1 #done
+   return 0 #done
 }
 
 # Promotes the specified user to sudoer.
@@ -77,21 +77,21 @@ function set_superuser {
    # Make sure user is specified:
    if [ -z $user ] ; then #user not specified
       echo "User name must be specified."
-      return 0 #exit
+      return 1 #exit
    fi
    # Make sure user exists:
    if ! grep -iq "^$user" /etc/passwd ; then #user does not exist
       echo "User \"$user\" does not exist. Please create user and retry."
-      return 0 #exit
+      return 1 #exit
    fi
    # Set as superuser:
    usermod --append --groups wheel $user #append user to wheel group
    sed -i -e "s|^\(#\?\)\(\s\?\)\(%wheel\)\(\s\+\)\(ALL=(ALL)\)\(\s\+\)\(NOPASSWD:\sALL\)\(.*\)$|\3 \5 \7|" /etc/sudoers #allow wheel group to run all commands (similar to root)
-   return 1 #done
+   return 0 #done
 }
 
 # Sets system timezone to UTC/GMT.
 function set_timezone {
    ln -sf /usr/share/zoneinfo/UTC /etc/localtime
-   return 1 #done
+   return 0 #done
 }

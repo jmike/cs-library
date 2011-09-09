@@ -79,7 +79,7 @@ function install_fail2ban {
    # Collect garbage:
    cd ~
    rm -rf fail2ban*
-   return 1 #done
+   return 0 #done
 }
 
 # Enables a fail2ban jail of the specified type.
@@ -96,11 +96,11 @@ function enable_fail2ban_jail {
          ;;
       *)
          echo "Unknown jail type. Available options: SSH."
-         return 0 #exit
+         return 1 #exit
          ;;
    esac
    service fail2ban restart
-   return 1 #done
+   return 0 #done
 }
 
 # Unblocks a host that was banned by fail2ban.
@@ -112,7 +112,7 @@ function remove_banned_host {
    # Make sure host is specified:
    if [ -z $host ] ; then #host not specified
       echo "IP address or hostname must be specified."
-      return 0 #exit
+      return 1 #exit
    fi
    # Unblock host:
    case $type in
@@ -121,8 +121,8 @@ function remove_banned_host {
          ;;
       *)
          echo "Unknown jail type. Available options: SSH."
-         return 0 #exit
+         return 1 #exit
          ;;
    esac
-   return 1 #done
+   return 0 #done
 }

@@ -130,22 +130,22 @@ function add_php_fpm_pool {
    # Check if $user exists:
    if ! grep -iq "^$user" /etc/passwd ; then #user does not exist
       echo "User \"$user\" does not exist. Please run useradd and try again."
-      return 0 #exit
+      return 1 #exit
    fi
    # Check if $group exists:
    if ! grep -iq "^$group" /etc/group ; then #group does not exist
       echo "Group \"$group\" does not exist. Please run groupadd and try again."
-      return 0 #exit
+      return 1 #exit
    fi
    # Check if $home directory exists:
    if [ ! -d "$home" ]; then
       echo "Home directory $home does not exist. Please retry, entering a valid path."
-      return 0 #exit
+      return 1 #exit
    fi
    # Check if $port is taken:
    if netstat -lnt | grep -q "$port" ; then #port is already taken
       echo "Port $port is already taken. Please retry, entering another port."
-      return 0 #exit
+      return 1 #exit
    fi
    # Set logs:
    touch /var/log/php-fpm/$name-access.log
