@@ -362,23 +362,106 @@ FLUSH PRIVILEGES;"
    return 0 #done
 }
 
+# Returns 0 if the specified MySQL database name is valid, 1 if not.
+# Refer to http://dev.mysql.com/doc/refman/5.5/en/identifiers.html for valid database names.
+# $1 the name of the database. {REQUIRED}
+function valid_mysql_db_name {
+   local db_name="$1"
+   if [[ $db_name =~ ^[0-9,a-z,A-Z_$]+$ ]] ; then #db name is valid
+      return 0
+   else #db name is invalid
+      return 1
+   fi
+}
+
+# Creates a database with the specified name in MySQL server.
+# $1 the name of the database, i.e. 'wordpress'. {REQUIRED}
 function create_mysql_db {
+   local db_name="$1"
    # Make sure MySQL is installed:
    if [ ! -e $MYSQL_HOME_DIR/bin/mysql ] ; then
       echo "MySQL server not found on this system. Please install MySQL and retry."
       return 1 #exit      
    fi
-   echo "Under Construction!"
+   # Make sure db_name is specified:
+   if [ -z $db_name ] ; then #db name not specified
+      echo "The name of the database must be specified."
+      return 1 #exit
+   fi
+   # Make sure db_name is valid:
+   if valid_mysql_db_name $db_name ; then
+      echo "The name of the database is invalid."
+      return 1 #exit      
+   fi
+   # Create database:
+   mysql --user=$MYSQL_ROOT_USERNAME --password="$MYSQL_ROOT_PASSWORD" --execute=\
+"CREATE DATABASE IF NOT EXISTS $db_name DEFAULT CHARACTER SET utf8 DEFAULT COLLATE utf8_general_ci;"
+   echo "Database \"$db_name\" successfully created." #echo success message
    return 0 #done
 }
 
+# Deletes the specified database from MySQL server.
+# $1 the name of the database, i.e. 'wordpress'. {REQUIRED}
 function delete_mysql_db {
+   local db_name="$1"
    # Make sure MySQL is installed:
    if [ ! -e $MYSQL_HOME_DIR/bin/mysql ] ; then
       echo "MySQL server not found on this system. Please install MySQL and retry."
       return 1 #exit      
    fi
-   echo "Under Construction!"
+   # Make sure db_name is specified:
+   if [ -z $db_name ] ; then #db name not specified
+      echo "The name of the database must be specified."
+      return 1 #exit
+   fi
+   # Make sure db_name is valid:
+   if valid_mysql_db_name $db_name ; then
+      echo "The name of the database is invalid."
+      return 1 #exit      
+   fi
+   # Delete database:
+   mysql --user=$MYSQL_ROOT_USERNAME --password="$MYSQL_ROOT_PASSWORD" --execute=\
+"DROP DATABASE IF NOT EXISTS $db_name;"
+   echo "Database \"$db_name\" successfully deleted." #echo success message
+   return 0 #done
+}
+
+# Grants all priviledges to the specified user for administering the supplied database.
+# $1 the user that will be granted the priviledges, i.e. 'jason'. {REQUIRED}
+# $2 the database name upon which the priviledges apply, i.e. 'wordpress'. {REQUIRED}
+function grant_mysql_db_priv {
+   local user="$1"
+   local db_name="$2"
+   # Make sure MySQL is installed:
+   if [ ! -e $MYSQL_HOME_DIR/bin/mysql ] ; then
+      echo "MySQL server not found on this system. Please install MySQL and retry."
+      return 1 #exit      
+   fi
+   # Make sure user is specified:
+   if [ -z $user ] ; then #user not specified
+      echo "User's name must be specified."
+      return 1 #exit
+   fi
+   # Make sure user exists:
+   if ! exists_mysql_user $user ; then
+      echo "User \"$user\" does not exist. Please specify a valid user."
+      return 1 #exit
+   fi
+   # Make sure db_name is specified:
+   if [ -z $db_name ] ; then #db name not specified
+      echo "The name of the database must be specified."
+      return 1 #exit
+   fi
+   # Make sure db_name is valid:
+   if valid_mysql_db_name $db_name ; then
+      echo "The name of the database is invalid."
+      return 1 #exit      
+   fi
+   # Grant priviledge(s):
+   mysql --user=$MYSQL_ROOT_USERNAME --password="$MYSQL_ROOT_PASSWORD" --execute=\
+"GRANT ALL PRIVILEGES ON `$db_name`.* TO '$user'@'%';
+FLUSH PRIVILEGES;"
+   echo "User \"$user\" granted with all priviledges for \"$db_name\" database." #echo success message
    return 0 #done
 }
 
