@@ -79,6 +79,7 @@ function install_fail2ban {
    # Collect garbage:
    cd ~
    rm -rf fail2ban*
+   return 1 #done
 }
 
 # Enables a fail2ban jail of the specified type.
@@ -99,6 +100,7 @@ function enable_fail2ban_jail {
          ;;
    esac
    service fail2ban restart
+   return 1 #done
 }
 
 # Unblocks a host that was banned by fail2ban.
@@ -122,4 +124,5 @@ function remove_banned_host {
          return 0 #exit
          ;;
    esac
+   return 1 #done
 }

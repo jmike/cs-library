@@ -18,6 +18,7 @@
 # Updates currently installed system packages.
 function update {
    yum -y update
+   return 1 #done
 }
 
 # Installs extra packages and repositories.
@@ -65,6 +66,7 @@ make \
 automake \
 autoconf \
 bind-utils
+   return 1 #done
 }
 
 # Promotes the specified user to sudoer.
@@ -85,9 +87,11 @@ function set_superuser {
    # Set as superuser:
    usermod --append --groups wheel $user #append user to wheel group
    sed -i -e "s|^\(#\?\)\(\s\?\)\(%wheel\)\(\s\+\)\(ALL=(ALL)\)\(\s\+\)\(NOPASSWD:\sALL\)\(.*\)$|\3 \5 \7|" /etc/sudoers #allow wheel group to run all commands (similar to root)
+   return 1 #done
 }
 
 # Sets system timezone to UTC/GMT.
 function set_timezone {
    ln -sf /usr/share/zoneinfo/UTC /etc/localtime
+   return 1 #done
 }

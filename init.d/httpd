@@ -1,0 +1,88 @@
+#!/bin/bash
+#
+# Startup script for the Apache Web Server
+#
+# chkconfig: - 85 15
+# description: Apache is a World Wide Web server.  It is used to serve HTML files and CGI.
+# processname: httpd
+
+# Source function library.
+. /etc/init.d/functions
+
+# Source networking configuration.
+. /etc/sysconfig/network
+
+# Check that networking is up.
+[ \${NETWORKING} = \"no\" ] && exit 0
+
+# This will prevent initlog from swallowing up a pass-phrase prompt if
+# mod_ssl needs a pass-phrase from the user.
+INITLOG_ARGS=""
+
+apachectl=/usr/local/apache2/bin/apachectl
+httpd=/usr/local/apache2/bin/httpd
+pid=$httpd/logs/httpd.pid
+lock=/var/lock/subsys/httpd
+
+prog=httpd
+RETVAL=0
+
+start() {
+   echo -n $"Starting $prog: "
+   daemon $httpd #you may add options here
+   RETVAL=$?
+   echo
+   [ $RETVAL = 0 ] && touch $lock
+   return $RETVAL
+}
+
+stop() {
+   echo -n $"Stopping $prog: "
+   killproc $httpd
+   RETVAL=$?
+   echo
+   [ $RETVAL = 0 ] && rm -f $lock $pid
+}
+
+reload() {
+   echo -n $"Reloading $prog: "
+   killproc $httpd -HUP
+   RETVAL=$?
+   echo
+}
+
+case "$1" in
+   start)
+      start
+      ;;
+   stop)
+      stop
+      ;;
+   status)
+      status $httpd
+      RETVAL=$?
+      ;;
+   restart)
+      stop
+      start
+      ;;
+   condrestart)
+      if [ -f $pid ] ; then
+         stop
+         start
+      fi
+      ;;
+   reload)
+      reload
+      ;;
+   graceful|help|configtest|fullstatus)
+      $apachectl $@
+      RETVAL=$?
+      ;;
+   *)
+      echo $"Usage: $prog {start|stop|restart|condrestart|reload|status"
+      echo $"|fullstatus|graceful|help|configtest}"
+      exit 1
+esac
+
+exit $RETVAL

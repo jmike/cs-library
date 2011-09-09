@@ -18,11 +18,13 @@
 # Returns the primary IP address assigned to public (eth0) interface.
 function get_primary_ip {
    echo $(ifconfig eth0 | awk -F: '/inet addr:/ { print $2 }' | awk '{ print $1 }')
+   return 1 #done
 }
 
 # Returns the primary IP address assigned to private (eth0:1) interface.
 function get_private_primary_ip {
    echo $(ifconfig eth0:1 | awk -F: '/inet addr:/ { print $2 }' | awk '{ print $1 }')
+   return 1 #done
 }
 
 # Returns the reverse DNS hostname of the specified IP address.
@@ -39,11 +41,13 @@ function get_rdns {
       yum -y install bind-utils > /dev/null #silently install bind-utils
    fi
    echo $(host $ip_address | awk '/pointer/ {print $5}' | sed 's/\.$//')
+   return 1 #done
 } 
 
 # Returns the reverse DNS hostname of the primary IP address.
 function get_rdns_primary_ip {
    echo $(get_rdns $(get_primary_ip))
+   return 1 #done
 }
 
 # Sets hostname to the specified value.
@@ -75,6 +79,7 @@ function set_hostname {
 $(get_primary_ip) $(get_rdns_primary_ip) $name
 " > /etc/hosts #set hostname
    fi
+   return 1 #done
 }
  
 # Sets the public IP interface.
@@ -113,6 +118,7 @@ IPADDR=$ip_address
 NETMASK=$netmask
 GATEWAY=$gateway
 " > /etc/sysconfig/network-scripts/ifcfg-eth0
+   return 1 #done
 }
 
 # Sets the private IP interface.
@@ -143,6 +149,7 @@ NM_CONTROLLED=no #tells NetworkManager not to manage this interface
 IPADDR=$ip_address
 NETMASK=$netmask
 " > /etc/sysconfig/network-scripts/ifcfg-eth0:1
+   return 1 #done
 }
 
 # Sets the local domain name.
@@ -160,6 +167,7 @@ function set_domain {
 -e "$ a \
 domain $name" \
 /etc/resolv.conf
+   return 1 #done
 }
 
 # Sets the search list for hostnames lookup.
@@ -178,6 +186,7 @@ function set_search_list {
 -e "$ a \
 search $name" \
 /etc/resolv.conf
+   return 1 #done
 }
 
 # Sets the nameserver(s) of the DNS resolver.
@@ -200,10 +209,12 @@ function set_resolver_ns {
 -e "$ a \
 options rotate" \
 /etc/resolv.conf
+   return 1 #done
 }
 
 # Restarts the network service.
 function restart_network {
    service network restart
    service network status
+   return 1 #done
 }

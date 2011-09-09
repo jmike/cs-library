@@ -220,7 +220,7 @@ $MYSQL_LOG_DIR/slow.log {
    # Secure MySQL:
    sleep 10 #wait few seconds to make sure all processes are done
    mysql --user=root --execute=\
-"UPDATE mysql.user SET User='$MYSQL_ROOT_USERNAME', Password=PASSWORD('$MYSQL_ROOT_PASSWORD') WHERE User = 'root'; #change root username + set new password
+"UPDATE mysql.user SET User='$MYSQL_ROOT_USERNAME', Password=PASSWORD('$MYSQL_ROOT_PASSWORD') WHERE User='root'; #change root username + set new password
 FLUSH PRIVILEGES;"
    mysql --user=$MYSQL_ROOT_USERNAME --password="$MYSQL_ROOT_PASSWORD" --execute=\
 "DELETE FROM mysql.user WHERE User=''; #delete anonymous users
@@ -231,6 +231,7 @@ FLUSH PRIVILEGES;"
 "DELETE FROM mysql.db WHERE Db LIKE 'test%'; #delete test databases
 DROP DATABASE test;
 FLUSH PRIVILEGES;"
+   return 1 #done
 }
 
 # Uninstalls MySQL database server.
@@ -270,6 +271,7 @@ function uninstall_mysql {
       groupdel $MYSQL_GROUP
    fi
    echo "MySQL server successfully uninstalled."
+   return 1 #done
 }
 
 # Creates new user account in MySQL.
@@ -287,29 +289,57 @@ function create_mysql_user {
    fi
    # Make sure username is specified:
    if [ -z $username ] ; then #username not specified
-      echo "Account username must be specified."
+      echo "User's name must be specified."
       return 0 #exit
    fi
    # Make sure password is specified:
    if [ -z $password ] ; then #password not specified
-      echo "Account password must be specified."
+      echo "User's password must be specified."
       return 0 #exit
    fi
-   # Create account:
+   # Make sure user does not exist:
+   local exists=$(mysql --user=$MYSQL_ROOT_USERNAME --password="$MYSQL_ROOT_PASSWORD" --silent --skip-column-names --execute=\
+"SELECT COUNT(*) FROM mysql.user WHERE User='$username';")
+   if [ $exists -gt 0 ] ; then #user already exists
+      echo "User's name already taken. Please specify another name."
+      return 0 #exit
+   fi
+   # Create user account:
    mysql --user=$MYSQL_ROOT_USERNAME --password="$MYSQL_ROOT_PASSWORD" --execute=\
 "CREATE USER '$username' IDENTIFIED BY '$password';
 FLUSH PRIVILEGES;"
+   echo "User \"$username\" created successfully." #echo success message
+   return 1 #done
 }
 
 # Please refer to http://dev.mysql.com/doc/refman/5.5/en/account-management-sql.html for further study in MySQL account management.
 # MySQL server should be installed beforehand.
-function remove_mysql_user {
+# $1 the name of the user that will be deleted, i.e. 'fergie'. {REQUIRED}
+function delete_mysql_user {
+   local username="$1"
    # Make sure MySQL is installed:
    if [ ! -e $MYSQL_HOME_DIR/bin/mysql ] ; then
       echo "MySQL server not found on this system. Please install MySQL and retry."
       return 0 #exit      
    fi
-   echo "Under Construction!"
+   # Make sure username is specified:
+   if [ -z $username ] ; then #username not specified
+      echo "Account username must be specified."
+      return 0 #exit
+   fi
+   # Make sure user exists:
+   local exists=$(mysql --user=$MYSQL_ROOT_USERNAME --password="$MYSQL_ROOT_PASSWORD" --silent --skip-column-names --execute=\
+"SELECT COUNT(*) FROM mysql.user WHERE User='$username';")
+   if [ $exists -eq 0 ] ; then #user does not exist
+      echo "The specified user does not exist."
+      return 0 #exit
+   fi
+   # Delete user account:
+   mysql --user=$MYSQL_ROOT_USERNAME --password="$MYSQL_ROOT_PASSWORD" --execute=\
+"DROP USER '$username';
+FLUSH PRIVILEGES;"
+   echo "User \"$username\" successfully deleted." #echo success message
+   return 1 #done
 }
 
 # MySQL server should be installed beforehand.
@@ -320,6 +350,7 @@ function add_mysql_db {
       return 0 #exit      
    fi
    echo "Under Construction!"
+   return 1 #done
 }
 
 # MySQL server should be installed beforehand.
@@ -330,9 +361,10 @@ function remove_mysql_db {
       return 0 #exit      
    fi
    echo "Under Construction!"
+   return 1 #done
 }
 
-# Sets locally installed MySQL server as master.
+# Sets locally installed MySQL server as master in the replication scheme.
 # Please refer to http://dev.mysql.com/doc/refman/5.5/en/replication.html for further study in MySQL Replication.
 # MySQL server should be installed beforehand.
 # $1 server id number, ranges between 1 and 4294967295, defaults to INET_ATON(Private IP address). {OPTIONAL}
@@ -361,12 +393,13 @@ function set_mysql_master {
    sed -i -e "s|^#\?\(sync_binlog\).*$|\1=1|" $MYSQL_CONF_FILE #safest choice in the event of a crash for innodb transactions
    echo "MySQL server $server_id is set as master replica." #echo success message
    service mysqld restart #restart server
+   return 1 #done
 }
 
-# Sets locally installed MySQL server as master.
+# Sets locally installed MySQL server as slave in the specified replication scheme.
 # Please refer to http://dev.mysql.com/doc/refman/5.5/en/replication.html for further study in MySQL Replication.
 # MySQL server should be installed beforehand.
-# $2 server id number, ranges between 1 and 4294967295, defaults to INET_ATON(Private IP address). {OPTIONAL}
+# $1 server id number, ranges between 1 and 4294967295, defaults to INET_ATON(Private IP address). {OPTIONAL}
 function set_mysql_slave {
    local server_id="$1"
    # Make sure MySQL is installed:
@@ -385,4 +418,5 @@ function set_mysql_slave {
    fi
    # Configure MySQL as slave:
    sed -i -e "s|^#\?\(server-id\).*$|\1=$server_id|" $MYSQL_CONF_FILE #set unique server id
+   return 1 #done
 }

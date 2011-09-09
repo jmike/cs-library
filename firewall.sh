@@ -49,6 +49,7 @@ function set_firewall {
    # Save + restart:
    service iptables save
    service iptables restart
+   return 1 #done
 }
 
 # Returns 1 if the specified port is valid, 0 if not.
@@ -103,6 +104,7 @@ function allow {
    # Save + restart:
    service iptables save
    service iptables restart
+   return 1 #done
 }
 
 # Denies incoming traffic to the specified port(s) of the supplied network protocol.
@@ -138,4 +140,5 @@ function deny {
    # Save + restart:
    service iptables save
    service iptables restart
+   return 1 #done
 }

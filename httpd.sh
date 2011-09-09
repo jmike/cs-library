@@ -34,6 +34,7 @@ HTTPD_HOME_DIR="/opt/httpd"
 HTTPD_CONF_DIR="/etc/httpd"
 HTTPD_LOG_DIR="/var/log/httpd"
 HTTPD_STATE_DIR="/var/run/httpd"
+HTTPD_INITD_SCRIPT=$(cat ./init.d/httpd)
 HTTP_PORT="$1"
 HTTPS_PORT="$2"
 
@@ -260,7 +261,7 @@ $HTTPD_LOG_DIR/access.log {
 }" > /etc/logrotate.d/httpd
    chmod u=rw,g=r,o= /etc/logrotate.d/httpd
    # Set daemon:
-   echo_httpd_initd > /etc/init.d/httpd #create/overwrite httpd init.d script
+   echo "$HTTPD_INITD_SCRIPT" > /etc/init.d/httpd #create/overwrite httpd init.d script
    sed -i -e "s|^\(apachectl\)\(\s*=\s*\).*$|\1=$HTTPD_HOME_DIR/bin/apachectl|" /etc/init.d/httpd #set path to the apachectl script
    sed -i -e "s|^\(httpd\)\(\s*=\s*\).*$|\1=$HTTPD_HOME_DIR/bin/httpd|" /etc/init.d/httpd #set path to the server binary
    sed -i -e "s|^\(pid\)\(\s*=\s*\).*$|\1=$HTTPD_STATE_DIR/httpd.pid|" /etc/init.d/httpd #set PID file
@@ -432,97 +433,4 @@ function remove_httpd_alias {
    # Remove alias from config files:
    sed -i -e "/^\s*ServerAlias $alias$/d" $HTTPD_CONF_DIR/sites/*.conf #delete alias directives if found
    service httpd reload #reload config
-}
-
-# Echoes HTTPD init.d script.
-function echo_httpd_initd {
-   echo -n \
-'#!/bin/bash
-#
-# Startup script for the Apache Web Server
-#
-# chkconfig: - 85 15
-# description: Apache is a World Wide Web server.  It is used to serve HTML files and CGI.
-# processname: httpd
-
-# Source function library.
-. /etc/init.d/functions
-
-# Source networking configuration.
-. /etc/sysconfig/network
-
-# Check that networking is up.
-[ \${NETWORKING} = \"no\" ] && exit 0
-
-# This will prevent initlog from swallowing up a pass-phrase prompt if
-# mod_ssl needs a pass-phrase from the user.
-INITLOG_ARGS=""
-
-apachectl=/usr/local/apache2/bin/apachectl
-httpd=/usr/local/apache2/bin/httpd
-pid=$httpd/logs/httpd.pid
-lock=/var/lock/subsys/httpd
-
-prog=httpd
-RETVAL=0
-
-start() {
-   echo -n $"Starting $prog: "
-   daemon $httpd #you may add options here
-   RETVAL=$?
-   echo
-   [ $RETVAL = 0 ] && touch $lock
-   return $RETVAL
-}
-
-stop() {
-   echo -n $"Stopping $prog: "
-   killproc $httpd
-   RETVAL=$?
-   echo
-   [ $RETVAL = 0 ] && rm -f $lock $pid
-}
-
-reload() {
-   echo -n $"Reloading $prog: "
-   killproc $httpd -HUP
-   RETVAL=$?
-   echo
-}
-
-case "$1" in
-   start)
-      start
-      ;;
-   stop)
-      stop
-      ;;
-   status)
-      status $httpd
-      RETVAL=$?
-      ;;
-   restart)
-      stop
-      start
-      ;;
-   condrestart)
-      if [ -f $pid ] ; then
-         stop
-         start
-      fi
-      ;;
-   reload)
-      reload
-      ;;
-   graceful|help|configtest|fullstatus)
-      $apachectl $@
-      RETVAL=$?
-      ;;
-   *)
-      echo $"Usage: $prog {start|stop|restart|condrestart|reload|status"
-      echo $"|fullstatus|graceful|help|configtest}"
-      exit 1
-esac
-
-exit $RETVAL'
 }

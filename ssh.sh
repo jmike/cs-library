@@ -55,6 +55,7 @@ $SSH_CONF_FILE #log messages of INFO level (or higher) in /var/log/secure
    service sshd reload #restart service
    # Set firewall:
    allow tcp $SSH_PORT
+   return 1 #done
 }
 
 # Imprisons the specified user in a SFTP chroot jail.
@@ -97,6 +98,7 @@ function add_sftp_jail {
 #End of Match
 " >> $SSH_CONF_FILE
    service sshd reload #reload configuration
+   return 1 #done
 }
 
 # Releases the specified user from her SFTP jail.
@@ -116,4 +118,5 @@ function remove_sftp_jail {
    # Delete jail configuration:
    sed -i -e "/^Match User \"$user\"$/,/^#End of Match$/d" $SSH_CONF_FILE #remove lines from "Match User $user" to first "#End of Match"
    service sshd reload #reload configuration
+   return 1 #done
 }
