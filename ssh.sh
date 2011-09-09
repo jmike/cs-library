@@ -23,7 +23,7 @@ SSH_PORT=${1-'22'}
 
 # Configures and hardens the SSH daemon.
 # Please note that Red Hat has a policy of backporting security patches from the latest releases into the current distribution version. Thus SSH daemon may seem outdated, while it is not. As long as the latest updates are applied to system, the SSH daemon will be fully patched.
-# Please refer to http://wiki.centos.org/HowTos/Network/SecuringSSH for further reading.
+# Please refer to http://wiki.centos.org/HowTos/Network/SecuringSSH for further reading on SSH security.
 function set_sshd {
    # Configure:
    sed -i -e "s|^\(#\?\)\(Port\)\(\s\+\)\(.*\)$|\2 $SSH_PORT|" $SSH_CONF_FILE #change SSH port
@@ -58,9 +58,9 @@ $SSH_CONF_FILE #log messages of INFO level (or higher) in /var/log/secure
 }
 
 # Imprisons the specified user in a SFTP chroot jail.
+# $1 the user that will be emprisoned, i.e. 'betty'. {REQUIRED}
+# $2 the directory that user will be emprisoned into, i.e. '/home/betty'. {REQUIRED}
 # Please note that jail directory should be owned by root, otherwise chrooting won't work.
-# $1 the user that will be emprisoned {REQUIRED}
-# $2 the directory that user will be emprisoned into {REQUIRED}
 function add_sftp_jail {
    local user="$1"
    local jail="$2"
@@ -100,7 +100,7 @@ function add_sftp_jail {
 }
 
 # Releases the specified user from her SFTP jail.
-# $1 the user that will be released {REQUIRED}
+# $1 the user that will be released, i.e. 'mary'. {REQUIRED}
 function remove_sftp_jail {
    local user="$1"
    # Make sure user is specified:

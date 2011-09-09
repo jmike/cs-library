@@ -26,19 +26,13 @@ MYSQL_CONF_FILE='/etc/my.cnf'
 MYSQL_LOG_DIR='/var/log/mysql'
 MYSQL_STATE_DIR='/var/run/mysql'
 MYSQL_PORT=${1-'3306'}
+MYSQL_ROOT_USERNAME=${2-'root'}
+MYSQL_ROOT_PASSWORD=${3-''}
 
 # Installs MySQL relational database.
 # Please refer to http://dev.mysql.com/doc/refman/5.5/en/server-logs.html for further study in MySQL Logs.
 # Please refer to http://dev.mysql.com/doc/refman/5.5/en/security.html for further study in MySQL Security.
-# Please refer to http://dev.mysql.com/doc/refman/5.5/en/replication.html for further study in MySQL Replication.
-# $1 password for MySQL root account {REQUIRED}
 function install_mysql {
-   local password="$1"
-   # Make sure password is specified:
-   if [ -z $password ] ; then #password not specified
-      echo "MySQL root password must be specified."
-      return 0 #exit
-   fi
    # Create user & group:
    if ! grep -iq "^$MYSQL_GROUP" /etc/group ; then #group does not exist
       groupadd $MYSQL_GROUP
@@ -225,15 +219,28 @@ $MYSQL_LOG_DIR/slow.log {
    rm -rf mysql*
    # Secure MySQL:
    sleep 10 #wait few seconds to make sure all processes are done
-   mysql --user=root --execute="UPDATE mysql.user SET Password = PASSWORD('$password') WHERE User = 'root'; FLUSH PRIVILEGES;" #set password for root
-   mysql --user=root --password="$password" --execute="DELETE FROM mysql.user WHERE User = '';" #delete anonymous users
+   mysql --user=root --execute=\
+"UPDATE mysql.user SET User='$MYSQL_ROOT_USERNAME', Password=PASSWORD('$MYSQL_ROOT_PASSWORD') WHERE User = 'root'; #change root username + set new password
+FLUSH PRIVILEGES;"
+   mysql --user=$MYSQL_ROOT_USERNAME --password="$MYSQL_ROOT_PASSWORD" --execute=\
+"DELETE FROM mysql.user WHERE User=''; #delete anonymous users
+DELETE FROM mysql.user WHERE Host='%'; #delete any user @ external hosts
+FLUSH PRIVILEGES;"
    find /opt/mysql -type f -name ".empty" -exec rm -f {} \; #delete .empty files that appear out-of-nowhere and prevent mysql from deleting databases
-   mysql --user=root --password="$password" --execute="DELETE FROM mysql.db WHERE Db LIKE 'test%'; DROP DATABASE test; FLUSH PRIVILEGES;" #delete test databases
+   mysql --user=$MYSQL_ROOT_USERNAME --password="$MYSQL_ROOT_PASSWORD" --execute=\
+"DELETE FROM mysql.db WHERE Db LIKE 'test%'; #delete test databases
+DROP DATABASE test;
+FLUSH PRIVILEGES;"
 }
 
 # Uninstalls MySQL database server.
-# Mysql server should be installed beforehand.
+# MySQL server should be installed beforehand.
 function uninstall_mysql {
+   # Make sure MySQL is installed:
+   if [ ! -e $MYSQL_HOME_DIR/bin/mysql ] ; then
+      echo "MySQL server not found on this system. Please install MySQL and retry."
+      return 0 #exit      
+   fi
    # Unset firewall:
    deny tcp $MYSQL_PORT
    # Unset daemon:
@@ -265,37 +272,81 @@ function uninstall_mysql {
    echo "MySQL server successfully uninstalled."
 }
 
-function add_mysql_user {
-   echo "Under Construction!"
+# Creates new user account in MySQL.
+# Please refer to http://dev.mysql.com/doc/refman/5.5/en/account-management-sql.html for further study in MySQL account management.
+# MySQL server should be installed beforehand.
+# $1 the name of the user that will be created, i.e. 'annie'. {REQUIRED}
+# $2 the password of the user account to-be-created. {REQUIRED}
+function create_mysql_user {
+   local username="$1"
+   local password="$2"
+   # Make sure MySQL is installed:
+   if [ ! -e $MYSQL_HOME_DIR/bin/mysql ] ; then
+      echo "MySQL server not found on this system. Please install MySQL and retry."
+      return 0 #exit      
+   fi
+   # Make sure username is specified:
+   if [ -z $username ] ; then #username not specified
+      echo "Account username must be specified."
+      return 0 #exit
+   fi
+   # Make sure password is specified:
+   if [ -z $password ] ; then #password not specified
+      echo "Account password must be specified."
+      return 0 #exit
+   fi
+   # Create account:
+   mysql --user=$MYSQL_ROOT_USERNAME --password="$MYSQL_ROOT_PASSWORD" --execute=\
+"CREATE USER '$username' IDENTIFIED BY '$password';
+FLUSH PRIVILEGES;"
 }
 
+# Please refer to http://dev.mysql.com/doc/refman/5.5/en/account-management-sql.html for further study in MySQL account management.
+# MySQL server should be installed beforehand.
 function remove_mysql_user {
+   # Make sure MySQL is installed:
+   if [ ! -e $MYSQL_HOME_DIR/bin/mysql ] ; then
+      echo "MySQL server not found on this system. Please install MySQL and retry."
+      return 0 #exit      
+   fi
    echo "Under Construction!"
 }
 
+# MySQL server should be installed beforehand.
 function add_mysql_db {
+   # Make sure MySQL is installed:
+   if [ ! -e $MYSQL_HOME_DIR/bin/mysql ] ; then
+      echo "MySQL server not found on this system. Please install MySQL and retry."
+      return 0 #exit      
+   fi
    echo "Under Construction!"
 }
 
+# MySQL server should be installed beforehand.
 function remove_mysql_db {
+   # Make sure MySQL is installed:
+   if [ ! -e $MYSQL_HOME_DIR/bin/mysql ] ; then
+      echo "MySQL server not found on this system. Please install MySQL and retry."
+      return 0 #exit      
+   fi
    echo "Under Construction!"
 }
 
 # Sets locally installed MySQL server as master.
-# $1 password for MySQL root account {REQUIRED}
-# $2 server unique id number, ranges between 1 and 4294967295, defaults to INET_ATON(Private IP address) {OPTIONAL}
+# Please refer to http://dev.mysql.com/doc/refman/5.5/en/replication.html for further study in MySQL Replication.
+# MySQL server should be installed beforehand.
+# $1 server id number, ranges between 1 and 4294967295, defaults to INET_ATON(Private IP address). {OPTIONAL}
 function set_mysql_master {
-   local password="$1"
-   local server_id="$2"
-   # Make sure password is specified:
-   if [ -z $password ] ; then #password not specified
-      echo "MySQL root password must be specified."
-      return 0 #exit
+   local server_id="$1"
+   # Make sure MySQL is installed:
+   if [ ! -e $MYSQL_HOME_DIR/bin/mysql ] ; then
+      echo "MySQL server not found on this system. Please install MySQL and retry."
+      return 0 #exit      
    fi
    # Determine server unique id number:
    if [ -z $server_id ] ; then #server id not specified
-      # Convert private IP address to number using MySQL INET_ATON internal function.
-      server_id=$(mysql --user=root --password="$password" --silent --skip-column-names --execute="SELECT INET_ATON('$(get_private_primary_ip)');") 
+      server_id=$(mysql --user=$MYSQL_ROOT_USERNAME --password="$MYSQL_ROOT_PASSWORD" --silent --skip-column-names --execute=\
+"SELECT INET_ATON('$(get_private_primary_ip)');") #convert internal IP address to number using MySQL INET_ATON function
       if [ -z $server_id ] ; then #server id still invalid
          echo "Server id could not be determined. Please specify a number between 1 and 4294967295."
          return 0 #exit
@@ -313,20 +364,20 @@ function set_mysql_master {
 }
 
 # Sets locally installed MySQL server as master.
-# $1 password for MySQL root account {REQUIRED}
-# $2 server unique id number, ranges between 1 and 4294967295, defaults to INET_ATON(Private IP address) {OPTIONAL}
+# Please refer to http://dev.mysql.com/doc/refman/5.5/en/replication.html for further study in MySQL Replication.
+# MySQL server should be installed beforehand.
+# $2 server id number, ranges between 1 and 4294967295, defaults to INET_ATON(Private IP address). {OPTIONAL}
 function set_mysql_slave {
-   local password="$1"
-   local server_id="$2"
-   # Make sure password is specified:
-   if [ -z $password ] ; then #password not specified
-      echo "MySQL root password must be specified."
-      return 0 #exit
+   local server_id="$1"
+   # Make sure MySQL is installed:
+   if [ ! -e $MYSQL_HOME_DIR/bin/mysql ] ; then
+      echo "MySQL server not found on this system. Please install MySQL and retry."
+      return 0 #exit      
    fi
    # Determine server unique id number:
    if [ -z $server_id ] ; then #server id not specified
-      # Convert private IP address to number using MySQL INET_ATON internal function.
-      server_id=$(mysql --user=root --password="$password" --silent --skip-column-names --execute="SELECT INET_ATON('$(get_private_primary_ip)');") 
+      server_id=$(mysql --user=$MYSQL_ROOT_USERNAME --password="$MYSQL_ROOT_PASSWORD" --silent --skip-column-names --execute=\
+"SELECT INET_ATON('$(get_private_primary_ip)');") #convert internal IP address to number using MySQL INET_ATON function
       if [ -z $server_id ] ; then #server id still invalid
          echo "Server id could not be determined. Please specify a number between 1 and 4294967295."
          return 0 #exit

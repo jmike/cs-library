@@ -16,7 +16,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 FW_CHAIN='Chuck_Norris' #spaces not valid here
-# Chuck Norris has a website, is called the internet :)
 
 # Initializes iptables with basic firewall rules.
 function set_firewall {
@@ -53,7 +52,7 @@ function set_firewall {
 }
 
 # Returns 1 if the specified port is valid, 0 if not.
-# $1 port number (0-65535) {REQUIRED}
+# $1 port number, positive integer ranging between 0 and 65535. {REQUIRED}
 function valid_port {
    local port="$1"
    if [[ $port =~ ^[0-9]+$ ]] ; then #port is an integer
@@ -68,8 +67,8 @@ function valid_port {
 }
 
 # Allows incoming traffic to the specified port(s) of the supplied network protocol.
-# $1 network protocol, either "tcp" or "udp" {REQUIRED}
-# $+ port number(s) (0-65535) {REQUIRED}
+# $1 network protocol, either "tcp" or "udp". {REQUIRED}
+# $+ port number(s) separated by space, positive integers ranging between 0 and 65535. {REQUIRED}
 function allow {
    local protocol="$1"
    shift #ignore first parameter, which represents protocol
@@ -107,8 +106,8 @@ function allow {
 }
 
 # Denies incoming traffic to the specified port(s) of the supplied network protocol.
-# $1 network protocol, either "tcp" or "udp" {REQUIRED}
-# $+ port number(s) (0-65535) {REQUIRED}
+# $1 network protocol, either "tcp" or "udp". {REQUIRED}
+# $+ port number(s) serarated by space, positive integers ranging between 0 and 65535. {REQUIRED}
 function deny {
    local protocol="$1"
    shift #ignore first parameter, which represents protocol

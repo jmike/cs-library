@@ -69,7 +69,7 @@ bind-utils
 
 # Promotes the specified user to sudoer.
 # User will be able to run all commands (similar to root), without entering a password.
-# $1 username {REQUIRED}
+# $1 the user that will be promoted, i.e. 'michael'. {REQUIRED}
 function set_superuser {
    local user=$1
    # Make sure user is specified:

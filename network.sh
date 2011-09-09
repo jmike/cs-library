@@ -26,7 +26,7 @@ function get_private_primary_ip {
 }
 
 # Returns the reverse DNS hostname of the specified IP address.
-# $1 the IP address, i.e. 192.1.1.5 {REQUIRED}
+# $1 the IP address, i.e. '192.1.1.5'. {REQUIRED}
 function get_rdns {
    local ip_address="$1"
    # Make sure ip address is specified:
@@ -47,7 +47,7 @@ function get_rdns_primary_ip {
 }
 
 # Sets hostname to the specified value.
-# $1 the FQDN hostname, i.e. mitsos.local.host {REQUIRED}
+# $1 the FQDN hostname, i.e. 'node.cloudedsunday.com' {REQUIRED}
 function set_hostname {
    local name="$1"
    # Make sure hostname is specified:
@@ -79,9 +79,9 @@ $(get_primary_ip) $(get_rdns_primary_ip) $name
  
 # Sets the public IP interface.
 # This is the main IP address that will be used for most outbound connections. IP address, netmask and gateway must be specified.
-# $1 the IP address {REQUIRED}
-# $2 the netmask {REQUIRED}
-# $3 the gateway {REQUIRED}
+# $1 the IP address. {REQUIRED}
+# $2 the netmask. {REQUIRED}
+# $3 the gateway. {REQUIRED}
 function set_public_ip {
    local ip_address="$1"
    local netmask="$2"
@@ -117,8 +117,8 @@ GATEWAY=$gateway
 
 # Sets the private IP interface.
 # Private IPs have no gateway (they are not publicly routable), thus only IP address and netmask need be specified.
-# $1 the IP address {REQUIRED}
-# $2 the netmask  {REQUIRED}
+# $1 the IP address. {REQUIRED}
+# $2 the netmask.  {REQUIRED}
 function set_private_ip {
    local ip_address="$1"
    local netmask="$2"
@@ -146,7 +146,7 @@ NETMASK=$netmask
 }
 
 # Sets the local domain name.
-# $1 the name of the local domain {REQUIRED}
+# $1 the name of the local domain, i.e. 'members.linode.com'. {REQUIRED}
 function set_domain {
    local name="$1"
    # Make sure name is specified:
@@ -164,7 +164,7 @@ domain $name" \
 
 # Sets the search list for hostnames lookup.
 # Usually this is the same as the local domain.
-# $1 the hostname of the search list {REQUIRED}
+# $1 the hostname of the search list, i.e. 'members.linode.com'. {REQUIRED}
 function set_search_list {
    local name="$1"
    # Make sure name is specified:
@@ -181,7 +181,7 @@ search $name" \
 }
 
 # Sets the nameserver(s) of the DNS resolver.
-# $+ the IP address(es) of the nameserver(s) {REQUIRED}
+# $+ the IP address(es) of the nameserver(s) separated by space. {REQUIRED}
 function set_resolver_ns {
    # Make sure at least one nameserver is specified:
    if [ $# -eq 0 ] ; then
