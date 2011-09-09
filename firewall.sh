@@ -15,6 +15,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+source network.sh
+
 FW_CHAIN='Chuck_Norris' #spaces not valid here
 
 # Initializes iptables with basic firewall rules.
@@ -50,21 +52,6 @@ function set_firewall {
    service iptables save
    service iptables restart
    return 0 #done
-}
-
-# Returns 0 if the specified port is valid, 1 if not.
-# $1 port number, positive integer ranging between 0 and 65535. {REQUIRED}
-function valid_port {
-   local port="$1"
-   if [[ $port =~ ^[0-9]+$ ]] ; then #port is an integer
-      if [ $port -gt 65535 ] ; then #port number is invalid
-         return 1
-      else #port is valid
-         return 0
-      fi
-   else #port is not an integer
-      return 1
-   fi
 }
 
 # Allows incoming traffic to the specified port(s) of the supplied network protocol.

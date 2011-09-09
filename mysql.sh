@@ -29,7 +29,7 @@ MYSQL_PORT=${1-'3306'}
 MYSQL_ROOT_USERNAME=${2-'root'}
 MYSQL_ROOT_PASSWORD=${3-''}
 
-# Installs MySQL relational database.
+# Installs MySQL database server.
 # Refer to http://dev.mysql.com/doc/refman/5.5/en/server-logs.html for further study in MySQL Logs.
 # Refer to http://dev.mysql.com/doc/refman/5.5/en/security.html for further study in MySQL Security.
 function install_mysql {
@@ -129,10 +129,18 @@ innodb_lock_wait_timeout=50
 # REPLICATION SETTINGS:
 #server-id=0
 #log-bin=mysql-bin
+#log-bin-index=mysql-bin.index
 #binlog-format=format=MIXED
 #max_binlog_size=1073741824
-#expire_logs_days=7
 #sync_binlog=1
+#expire_logs_days=7
+#relay-log=relay-bin 
+#max_relay_log_size=1073741824
+#relay-log-index=relay-bin.index
+#relay-log-info-file=relay-log.info
+#sync_relay_log=1
+#relay-log-recovery=1
+#relay_log_purge=1
 
 [mysqldump]
 quick
@@ -234,8 +242,7 @@ FLUSH PRIVILEGES;"
    return 0 #done
 }
 
-# Uninstalls MySQL database server.
-# MySQL server should be installed beforehand.
+# Uninstalls local MySQL server.
 function uninstall_mysql {
    # Make sure MySQL is installed:
    if [ ! -e $MYSQL_HOME_DIR/bin/mysql ] ; then
@@ -274,39 +281,38 @@ function uninstall_mysql {
    return 0 #done
 }
 
-# Return 0 if mysql user account exists, 1 if not.
+# Return 0 if user account exists in local MySQL server, 1 if not.
 # $1 the name of the user, i.e. 'billy'. {REQUIRED}
 function exists_mysql_user {
-   local username="$1"
-   # Make sure username is specified:
-   if [ -z $username ] ; then #username not specified
+   local name="$1"
+   # Make sure name is specified:
+   if [ -z $name ] ; then #name not specified
       echo "User's name must be specified."
       return 1 #exit
    fi
    # Check if user exists:
    local exists=$(mysql --user=$MYSQL_ROOT_USERNAME --password="$MYSQL_ROOT_PASSWORD" --silent --skip-column-names --execute=\
-"SELECT COUNT(*) FROM mysql.user WHERE User='$username';")
+"SELECT COUNT(*) FROM mysql.user WHERE User='$name';")
    if [ -z $exists -o $exists -eq 0 ] ; then #user not found
       return 1
    fi
    return 0
 }
 
-# Creates new user account in MySQL.
+# Creates new user account in MySQL server.
 # Refer to http://dev.mysql.com/doc/refman/5.5/en/account-management-sql.html for further study in MySQL account management.
-# MySQL server should be installed beforehand.
 # $1 the name of the user that will be created, i.e. 'annie'. {REQUIRED}
 # $2 the password of the user account to-be-created. {REQUIRED}
 function create_mysql_user {
-   local username="$1"
+   local name="$1"
    local password="$2"
    # Make sure MySQL is installed:
    if [ ! -e $MYSQL_HOME_DIR/bin/mysql ] ; then
       echo "MySQL server not found on this system. Please install MySQL and retry."
       return 1 #exit
    fi
-   # Make sure username is specified:
-   if [ -z $username ] ; then #username not specified
+   # Make sure name is specified:
+   if [ -z $name ] ; then #name not specified
       echo "User's name must be specified."
       return 1 #exit
    fi
@@ -316,49 +322,47 @@ function create_mysql_user {
       return 1 #exit
    fi
    # Make sure user does not exist:
-   if exists_mysql_user $username ; then
-      echo "Username \"$username\" is already taken. Please specify another name."
+   if exists_mysql_user $name ; then
+      echo "Username \"$name\" is already taken. Please specify another name."
       return 1 #exit
    fi
    # Create user account:
    mysql --user=$MYSQL_ROOT_USERNAME --password="$MYSQL_ROOT_PASSWORD" --execute=\
-"CREATE USER '$username' IDENTIFIED BY '$password';
+"CREATE USER '$name' IDENTIFIED BY '$password';
 FLUSH PRIVILEGES;"
-   echo "User \"$username\" created successfully." #echo success message
+   echo "User \"$name\" created successfully." #echo success message
    return 0 #done
 }
 
-# Deletes the specified user account from MySQL.
+# Deletes the specified user account from MySQL server.
 # Refer to http://dev.mysql.com/doc/refman/5.5/en/account-management-sql.html for further study in MySQL account management.
-# MySQL server should be installed beforehand.
 # $1 the name of the user that will be deleted, i.e. 'fergie'. {REQUIRED}
 function delete_mysql_user {
-   local username="$1"
+   local name="$1"
    # Make sure MySQL is installed:
    if [ ! -e $MYSQL_HOME_DIR/bin/mysql ] ; then
       echo "MySQL server not found on this system. Please install MySQL and retry."
       return 1 #exit      
    fi
-   # Make sure username is specified:
-   if [ -z $username ] ; then #username not specified
-      echo "Account username must be specified."
+   # Make sure name is specified:
+   if [ -z $name ] ; then #name not specified
+      echo "User's name must be specified."
       return 1 #exit
    fi
    # Make sure user exists:
-   if ! exists_mysql_user $username ; then
-      echo "User \"$username\" does not exist. Please specify a valid user."
+   if ! exists_mysql_user $name ; then
+      echo "User \"$name\" does not exist. Please specify a valid user."
       return 1 #exit
    fi
    # Delete user account:
    mysql --user=$MYSQL_ROOT_USERNAME --password="$MYSQL_ROOT_PASSWORD" --execute=\
-"DROP USER '$username';
+"DROP USER '$name';
 FLUSH PRIVILEGES;"
-   echo "User \"$username\" successfully deleted." #echo success message
+   echo "User \"$name\" successfully deleted." #echo success message
    return 0 #done
 }
 
-# MySQL server should be installed beforehand.
-function add_mysql_db {
+function create_mysql_db {
    # Make sure MySQL is installed:
    if [ ! -e $MYSQL_HOME_DIR/bin/mysql ] ; then
       echo "MySQL server not found on this system. Please install MySQL and retry."
@@ -368,14 +372,41 @@ function add_mysql_db {
    return 0 #done
 }
 
-# MySQL server should be installed beforehand.
-function remove_mysql_db {
+function delete_mysql_db {
    # Make sure MySQL is installed:
    if [ ! -e $MYSQL_HOME_DIR/bin/mysql ] ; then
       echo "MySQL server not found on this system. Please install MySQL and retry."
       return 1 #exit      
    fi
    echo "Under Construction!"
+   return 0 #done
+}
+
+# Grants the REPLICATION SLAVE priviledge to the specified MySQL user.
+# REPLICATION SLAVE priviledge is applied to all TABLES, FUNCTIONS and PROCEDURES.
+# $1 the user that will be granted the priviledge, i.e. 'jason'. {REQUIRED}
+function grant_mysql_replication_priv {
+   local user="$1"
+   # Make sure MySQL is installed:
+   if [ ! -e $MYSQL_HOME_DIR/bin/mysql ] ; then
+      echo "MySQL server not found on this system. Please install MySQL and retry."
+      return 1 #exit      
+   fi
+   # Make sure user is specified:
+   if [ -z $user ] ; then #user not specified
+      echo "User's name must be specified."
+      return 1 #exit
+   fi
+   # Make sure user exists:
+   if ! exists_mysql_user $user ; then
+      echo "User \"$user\" does not exist. Please specify a valid user."
+      return 1 #exit
+   fi
+   # Grant priviledge(s):
+   mysql --user=$MYSQL_ROOT_USERNAME --password="$MYSQL_ROOT_PASSWORD" --execute=\
+"GRANT REPLICATION SLAVE ON *.* TO '$user'@'%';
+FLUSH PRIVILEGES;"
+   echo "User \"$user\" granted with REPLICATION SLAVE priviledge." #echo success message
    return 0 #done
 }
 
@@ -386,9 +417,8 @@ function deliver_mysql_server_id {
    return 0 #done
 }
 
-# Sets locally installed MySQL server as master in a replication scheme.
+# Sets local MySQL server as master node.
 # Refer to http://dev.mysql.com/doc/refman/5.5/en/replication.html for further study in MySQL Replication.
-# MySQL server should be installed beforehand.
 # $1 server id number, ranges between 1 and 4294967295, defaults to INET_ATON(Private IP address). {OPTIONAL}
 function set_mysql_master {
    local server_id=${1-$(deliver_mysql_server_id)}
@@ -404,37 +434,85 @@ function set_mysql_master {
    fi
    # Configure MySQL as master:
    sed -i -e "s|^#\?\(server-id\).*$|\1=$server_id|" $MYSQL_CONF_FILE #set unique server id
-   sed -i -e "s|^#\?\(log-bin\).*$|\1=mysql-bin|" $MYSQL_CONF_FILE #set the base-name of binary logs (extensions such as .log do not apply)
+   sed -i -e "s|^#\?\(log-bin\).*$|\1=$MYSQL_LOG_DIRECTORY/mysql-bin|" $MYSQL_CONF_FILE #set the base-name of binary logs (extensions such as .log do not apply)
+   sed -i -e "s|^#\?\(log-bin-index\).*$|\1=$MYSQL_LOG_DIRECTORY/mysql-bin.index|" $MYSQL_CONF_FILE #set the base-name of binary logs index
    sed -i -e "s|^#\?\(binlog-format\).*$|\1=MIXED|" $MYSQL_CONF_FILE #set binlog format to MIXED
    sed -i -e "s|^#\?\(max_binlog_size\).*$|\1=1073741824|" $MYSQL_CONF_FILE #set max binlog size to 1GB
    sed -i -e "s|^#\?\(expire_logs_days\).*$|\1=7|" $MYSQL_CONF_FILE #delete binlogs older than 7 days
    sed -i -e "s|^#\?\(sync_binlog\).*$|\1=1|" $MYSQL_CONF_FILE #safest choice in the event of a crash for innodb transactions
    service mysqld restart #restart server
-   echo "MySQL server $server_id successfully set as master replica." #echo success message
+   echo "MySQL server $server_id successfully set as master." #echo success message
    return 0 #done
 }
 
-# Sets locally installed MySQL server as slave in the specified replication scheme.
-# Refer to http://dev.mysql.com/doc/refman/5.5/en/replication.html for further study in MySQL Replication.
-# MySQL server should be installed beforehand.
-# $1 the name of the user to connect to the master with, i.e. 'annie'. {REQUIRED}
-# $1 server id number, ranges between 1 and 4294967295, defaults to INET_ATON(Private IP address). {OPTIONAL}
-function set_mysql_slave {
-   local server_id=${1-$(deliver_mysql_server_id)}
-   local username="$2"
+# Creates a snapshot of data for the local MySQL server.
+# The snapshot file is stored under the specified directory. 
+# Gunzip compression algorithm is applied, thus the final output is named 'snapshot.sql.gz'.
+# The snapshot file includes 'CHANGE MASTER TO' statement that indicates the binary log coordinates (file name and position) of the master node.
+# Most likely a 'CHANGE MASTER TO' statement must be re-issued when data is loaded into slave, in order to specify MASTER_HOST, MASTER_USER and MASTER_PASSWORD values.
+# Refer to http://dev.mysql.com/doc/refman/5.5/en/replication-howto-mysqldump.html for further study into exporting MySQL data snapshots.
+# $1 the directory, where data will be stored, defaults to '~'. {OPTIONAL}
+function export_mysql_data {
+   local export_dir=${1,'~'}
    # Make sure MySQL is installed:
    if [ ! -e $MYSQL_HOME_DIR/bin/mysql ] ; then
       echo "MySQL server not found on this system. Please install MySQL and retry."
       return 1 #exit      
    fi
-   # Make sure username is specified:
-   if [ -z $username ] ; then #username not specified
-      echo "User's name must be specified."
+   # Export data:
+   mysqldump --user=$MYSQL_ROOT_USERNAME --password="$MYSQL_ROOT_PASSWORD" --all-databases --master-data | gzip > $export_dir/snapshot.sql.gz
+   return 0 #done
+}
+
+# Sets local MySQL server as slave to the specified master node.
+# Refer to http://dev.mysql.com/doc/refman/5.5/en/replication.html for further study in MySQL Replication.
+# $1 the hostname or IP address of the master, i.e. '195.168.2.3'. {REQUIRED}
+# $2 the port number of the master, i.e. '3306'. {REQUIRED}
+# $3 the MySQL user, with whom the slave connects to the master, i.e. 'annie'. {REQUIRED}
+# $4 the password of the MySQL user, with whom the slave connects to the master. {REQUIRED}
+# Please note that user must be in existence (on the master node) and granted with the REPLICATION SLAVE priviledge.
+# $5 the path to the snapshot file that contains data and 'CHANGE MASTER TO' statement, exported from the master. {REQUIRED}
+# $6 the server id number of the slave, ranges between 1 and 4294967295, defaults to INET_ATON(Private IP address). {OPTIONAL}
+function set_mysql_slave {
+   local master_host="$1"
+   local master_port="$2"
+   local master_user="$3"
+   local master_password="$4"
+   local data_file="$5"
+   local server_id=${6-$(deliver_mysql_server_id)}
+   # Make sure MySQL is installed:
+   if [ ! -e $MYSQL_HOME_DIR/bin/mysql ] ; then
+      echo "MySQL server not found on this system. Please install MySQL and retry."
+      return 1 #exit      
+   fi
+   # Make sure master's host is specified:
+   if [ -z $master_host ] ; then #master's host not specified
+      echo "The host or IP address of the master must be specified."
       return 1 #exit
    fi
-   # Make sure user exists:
-   if ! exists_mysql_user $username ; then
-      echo "User \"$username\" does not exist. Please specify a valid user."
+   # Make sure master's port is specified:
+   if [ -z $master_port ] ; then #master's port not specified
+      echo "The port number of the master must be specified."
+      return 1 #exit
+   fi
+   # Make sure master's port is valid:
+   if ! valid_port $master_port ; then
+      echo "Invalid master's port $port. Please specify a number between 0 and 65535."
+      return 1 #exit
+   fi
+   # Make sure master's user is specified:
+   if [ -z $master_user ] ; then #user not specified
+      echo "MySQL user to connect to the master must be specified."
+      return 1 #exit
+   fi
+   # Make sure the password of master's user is specified:
+   if [ -z $master_password ] ; then #password not specified
+      echo "Password for MySQL user must be specified."
+      return 1 #exit
+   fi
+   # Make sure data file exists:
+   if [ -e $data_file ] ; then #data file not found
+      echo "Snapshot file with master data cannot be found."
       return 1 #exit
    fi
    # Make sure server id is valid:
@@ -444,9 +522,26 @@ function set_mysql_slave {
    fi
    # Configure MySQL as slave:
    sed -i -e "s|^#\?\(server-id\).*$|\1=$server_id|" $MYSQL_CONF_FILE #set unique server id
-
-
-
-
+   sed -i -e "s|^#\?\(relay-log\).*$|\1=$MYSQL_LOG_DIR/relay-bin|" $MYSQL_CONF_FILE
+   sed -i -e "s|^#\?\(relay-log-index\).*$|\1=$MYSQL_LOG_DIR/relay-bin.index|" $MYSQL_CONF_FILE
+   sed -i -e "s|^#\?\(relay-log-info-file\).*$|\1=$MYSQL_LOG_DIR/relay-log.info|" $MYSQL_CONF_FILE
+   sed -i -e "s|^#\?\(max_relay_log_size\).*$|\1=1073741824|" $MYSQL_CONF_FILE
+   sed -i -e "s|^#\?\(sync_relay_log\).*$|\1=1|" $MYSQL_CONF_FILE
+   sed -i -e "s|^#\?\(relay-log-recovery\).*$|\1=1|" $MYSQL_CONF_FILE
+   sed -i -e "s|^#\?\(relay_log_purge\).*$|\1=1|" $MYSQL_CONF_FILE
+   service mysqld restart #restart server
+   # Import data from master + set MASTER_LOG_FILE and MASTER_LOG_POS:
+   zcat $data_file | mysql --user=$MYSQL_ROOT_USERNAME --password="$MYSQL_ROOT_PASSWORD"
+   # Set MASTER_HOST, MASTER_USER, MASTER_PASSWORD, etc:
+   mysql --user=$MYSQL_ROOT_USERNAME --password="$MYSQL_ROOT_PASSWORD" --execute=\
+"STOP SLAVE;
+CHANGE MASTER TO
+   MASTER_HOST='$master_host', 
+   MASTER_PORT=$master_port, 
+   MASTER_USER='$master_user', 
+   MASTER_PASSWORD='$master_password', 
+   MASTER_CONNECT_RETRY=30;
+START SLAVE;
+SHOW SLAVE STATUS;"
    return 0 #done
 }
