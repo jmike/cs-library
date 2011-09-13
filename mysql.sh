@@ -32,7 +32,7 @@ MYSQL_ROOT_PASSWORD=${3-''}
 # Installs MySQL database server.
 # Refer to http://dev.mysql.com/doc/refman/5.5/en/server-logs.html for further study in MySQL Logs.
 # Refer to http://dev.mysql.com/doc/refman/5.5/en/security.html for further study in MySQL Security.
-function install_mysql {
+function mysql.install {
    # Create user & group:
    if ! grep -iq "^$MYSQL_GROUP" /etc/group ; then #group does not exist
       groupadd $MYSQL_GROUP
@@ -221,7 +221,7 @@ $MYSQL_LOG_DIR/slow.log {
    chkconfig --level 35 mysqld on
    service mysqld start #start daemon for the first time
    # Set firewall:
-   allow tcp $MYSQL_PORT
+   firewall.allow tcp $MYSQL_PORT
    # Collect garbage:
    cd ~
    rm -rf mysql*
@@ -243,14 +243,14 @@ FLUSH PRIVILEGES;"
 }
 
 # Uninstalls local MySQL server.
-function uninstall_mysql {
+function mysql.uninstall {
    # Make sure MySQL is installed:
    if [ ! -e $MYSQL_HOME_DIR/bin/mysql ] ; then
       echo "MySQL server not found on this system. Please install MySQL and retry."
       return 1 #exit      
    fi
    # Unset firewall:
-   deny tcp $MYSQL_PORT
+   firewall.deny tcp $MYSQL_PORT
    # Unset daemon:
    service mysqld stop #stop daemon
    chkconfig mysqld off
@@ -283,7 +283,7 @@ function uninstall_mysql {
 
 # Return 0 if user account exists in local MySQL server, 1 if not.
 # $1 the name of the user, i.e. 'billy'. {REQUIRED}
-function exists_mysql_user {
+function mysql.exists_user {
    local name="$1"
    # Make sure name is specified:
    if [ -z $name ] ; then #name not specified
@@ -303,7 +303,7 @@ function exists_mysql_user {
 # Refer to http://dev.mysql.com/doc/refman/5.5/en/account-management-sql.html for further study in MySQL account management.
 # $1 the name of the user that will be created, i.e. 'annie'. {REQUIRED}
 # $2 the password of the user account to-be-created. {REQUIRED}
-function create_mysql_user {
+function mysql.create_user {
    local name="$1"
    local password="$2"
    # Make sure MySQL is installed:
@@ -322,7 +322,7 @@ function create_mysql_user {
       return 1 #exit
    fi
    # Make sure user does not exist:
-   if exists_mysql_user $name ; then
+   if mysql.exists_user $name ; then
       echo "Username \"$name\" is already taken. Please specify another name."
       return 1 #exit
    fi
@@ -337,7 +337,7 @@ FLUSH PRIVILEGES;"
 # Deletes the specified user account from MySQL server.
 # Refer to http://dev.mysql.com/doc/refman/5.5/en/account-management-sql.html for further study in MySQL account management.
 # $1 the name of the user that will be deleted, i.e. 'fergie'. {REQUIRED}
-function delete_mysql_user {
+function mysql.delete_user {
    local name="$1"
    # Make sure MySQL is installed:
    if [ ! -e $MYSQL_HOME_DIR/bin/mysql ] ; then
@@ -350,7 +350,7 @@ function delete_mysql_user {
       return 1 #exit
    fi
    # Make sure user exists:
-   if ! exists_mysql_user $name ; then
+   if ! mysql.exists_user $name ; then
       echo "User \"$name\" does not exist. Please specify a valid user."
       return 1 #exit
    fi
@@ -365,7 +365,7 @@ FLUSH PRIVILEGES;"
 # Returns 0 if the specified MySQL database name is valid, 1 if not.
 # Refer to http://dev.mysql.com/doc/refman/5.5/en/identifiers.html for valid database names.
 # $1 the name of the database. {REQUIRED}
-function valid_mysql_db_name {
+function mysql.valid_db_name {
    local db_name="$1"
    if [[ $db_name =~ ^[0-9,a-z,A-Z_$]+$ ]] ; then #db name is valid
       return 0
@@ -376,7 +376,7 @@ function valid_mysql_db_name {
 
 # Creates a database with the specified name in MySQL server.
 # $1 the name of the database, i.e. 'wordpress'. {REQUIRED}
-function create_mysql_db {
+function mysql.create_db {
    local db_name="$1"
    # Make sure MySQL is installed:
    if [ ! -e $MYSQL_HOME_DIR/bin/mysql ] ; then
@@ -389,7 +389,7 @@ function create_mysql_db {
       return 1 #exit
    fi
    # Make sure db_name is valid:
-   if valid_mysql_db_name $db_name ; then
+   if mysql.valid_db_name $db_name ; then
       echo "The name of the database is invalid."
       return 1 #exit      
    fi
@@ -402,7 +402,7 @@ function create_mysql_db {
 
 # Deletes the specified database from MySQL server.
 # $1 the name of the database, i.e. 'wordpress'. {REQUIRED}
-function delete_mysql_db {
+function mysql.delete_db {
    local db_name="$1"
    # Make sure MySQL is installed:
    if [ ! -e $MYSQL_HOME_DIR/bin/mysql ] ; then
@@ -415,7 +415,7 @@ function delete_mysql_db {
       return 1 #exit
    fi
    # Make sure db_name is valid:
-   if valid_mysql_db_name $db_name ; then
+   if mysql.valid_db_name $db_name ; then
       echo "The name of the database is invalid."
       return 1 #exit      
    fi
@@ -428,8 +428,8 @@ function delete_mysql_db {
 
 # Grants all priviledges to the specified user for administering the supplied database.
 # $1 the user that will be granted the priviledges, i.e. 'jason'. {REQUIRED}
-# $2 the database name upon which the priviledges apply, i.e. 'wordpress'. {REQUIRED}
-function grant_mysql_db_priv {
+# $2 the name of the database upon which the priviledges apply, i.e. 'wordpress'. {REQUIRED}
+function mysql.grant_db_priv {
    local user="$1"
    local db_name="$2"
    # Make sure MySQL is installed:
@@ -443,7 +443,7 @@ function grant_mysql_db_priv {
       return 1 #exit
    fi
    # Make sure user exists:
-   if ! exists_mysql_user $user ; then
+   if ! mysql.exists_user $user ; then
       echo "User \"$user\" does not exist. Please specify a valid user."
       return 1 #exit
    fi
@@ -453,7 +453,7 @@ function grant_mysql_db_priv {
       return 1 #exit
    fi
    # Make sure db_name is valid:
-   if valid_mysql_db_name $db_name ; then
+   if mysql.valid_db_name $db_name ; then
       echo "The name of the database is invalid."
       return 1 #exit      
    fi
@@ -466,9 +466,9 @@ FLUSH PRIVILEGES;"
 }
 
 # Grants the REPLICATION SLAVE priviledge to the specified MySQL user.
-# REPLICATION SLAVE priviledge is applied to all TABLES, FUNCTIONS and PROCEDURES.
-# $1 the user that will be granted the priviledge, i.e. 'jason'. {REQUIRED}
-function grant_mysql_replication_priv {
+# Priviledge is applied to all TABLES, FUNCTIONS and PROCEDURES.
+# $1 the user that will be granted the priviledge, i.e. 'thalia'. {REQUIRED}
+function mysql.grant_replication_priv {
    local user="$1"
    # Make sure MySQL is installed:
    if [ ! -e $MYSQL_HOME_DIR/bin/mysql ] ; then
@@ -481,7 +481,7 @@ function grant_mysql_replication_priv {
       return 1 #exit
    fi
    # Make sure user exists:
-   if ! exists_mysql_user $user ; then
+   if ! mysql.exists_user $user ; then
       echo "User \"$user\" does not exist. Please specify a valid user."
       return 1 #exit
    fi
@@ -494,17 +494,17 @@ FLUSH PRIVILEGES;"
 }
 
 # Delivers a unique server id by converting internal IP address to number (using MySQL INET_ATON function).
-function deliver_mysql_server_id {
+function mysql.deliver_server_id {
    echo $(mysql --user=$MYSQL_ROOT_USERNAME --password="$MYSQL_ROOT_PASSWORD" --silent --skip-column-names --execute=\
-"SELECT INET_ATON('$(get_private_primary_ip)');")
+"SELECT INET_ATON('$(network.get_ip eth0:1)');")
    return 0 #done
 }
 
 # Sets local MySQL server as master node.
 # Refer to http://dev.mysql.com/doc/refman/5.5/en/replication.html for further study in MySQL Replication.
 # $1 server id number, ranges between 1 and 4294967295, defaults to INET_ATON(Private IP address). {OPTIONAL}
-function set_mysql_master {
-   local server_id=${1-$(deliver_mysql_server_id)}
+function mysql.set_master {
+   local server_id=${1-$(mysql.deliver_server_id)}
    # Make sure MySQL is installed:
    if [ ! -e $MYSQL_HOME_DIR/bin/mysql ] ; then
       echo "MySQL server not found on this system. Please install MySQL and retry."
@@ -535,7 +535,7 @@ function set_mysql_master {
 # Most likely a 'CHANGE MASTER TO' statement must be re-issued when data is loaded into slave, in order to specify MASTER_HOST, MASTER_USER and MASTER_PASSWORD values.
 # Refer to http://dev.mysql.com/doc/refman/5.5/en/replication-howto-mysqldump.html for further study into exporting MySQL data snapshots.
 # $1 the directory, where data will be stored, defaults to '~'. {OPTIONAL}
-function export_mysql_data {
+function mysql.export_data {
    local export_dir=${1,'~'}
    # Make sure MySQL is installed:
    if [ ! -e $MYSQL_HOME_DIR/bin/mysql ] ; then
@@ -556,13 +556,13 @@ function export_mysql_data {
 # Please note that user must be in existence (on the master node) and granted with the REPLICATION SLAVE priviledge.
 # $5 the path to the snapshot file that contains data and 'CHANGE MASTER TO' statement, exported from the master. {REQUIRED}
 # $6 the server id number of the slave, ranges between 1 and 4294967295, defaults to INET_ATON(Private IP address). {OPTIONAL}
-function set_mysql_slave {
+function mysql.set_slave {
    local master_host="$1"
    local master_port="$2"
    local master_user="$3"
    local master_password="$4"
    local data_file="$5"
-   local server_id=${6-$(deliver_mysql_server_id)}
+   local server_id=${6-$(mysql.deliver_server_id)}
    # Make sure MySQL is installed:
    if [ ! -e $MYSQL_HOME_DIR/bin/mysql ] ; then
       echo "MySQL server not found on this system. Please install MySQL and retry."
@@ -579,7 +579,7 @@ function set_mysql_slave {
       return 1 #exit
    fi
    # Make sure master's port is valid:
-   if ! valid_port $master_port ; then
+   if ! network.valid_port $master_port ; then
       echo "Invalid master's port $port. Please specify a number between 0 and 65535."
       return 1 #exit
    fi

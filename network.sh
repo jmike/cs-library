@@ -15,22 +15,18 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-# Returns the primary IP address assigned to public (eth0) interface.
-function get_primary_ip {
-   echo $(ifconfig eth0 | awk -F: '/inet addr:/ { print $2 }' | awk '{ print $1 }')
-   return 0 #done
-}
-
-# Returns the primary IP address assigned to private (eth0:1) interface.
-function get_private_primary_ip {
-   echo $(ifconfig eth0:1 | awk -F: '/inet addr:/ { print $2 }' | awk '{ print $1 }')
+# Returns the IP address assigned to the specified interface.
+# $1 the name of the interface, 'eth0' by default. {OPTIONAL}
+function network.get_ip {
+   local ni=${1-'eth0'}
+   echo $(ifconfig $ni | awk -F: '/inet addr:/ { print $2 }' | awk '{ print $1 }')
    return 0 #done
 }
 
 # Returns the reverse DNS hostname of the specified IP address.
-# $1 the IP address, i.e. '192.1.1.5'. {REQUIRED}
-function get_rdns {
-   local ip_address="$1"
+# $1 the IP address, i.e. '192.1.1.5'. Defaults to the IP address of eth0 interface. {OPTIONAL}
+function network.get_rdns {
+   local ip_address=${1-$(network.get_ip)}
    # Make sure ip address is specified:
    if [ -z $ip_address ] ; then #ip address not specified
       echo "IP address must be specified."
@@ -44,15 +40,9 @@ function get_rdns {
    return 0 #done
 } 
 
-# Returns the reverse DNS hostname of the primary IP address.
-function get_rdns_primary_ip {
-   echo $(get_rdns $(get_primary_ip))
-   return 0 #done
-}
-
 # Sets hostname to the specified value.
 # $1 the FQDN hostname, i.e. 'node.cloudedsunday.com' {REQUIRED}
-function set_hostname {
+function network.set_hostname {
    local name="$1"
    # Make sure hostname is specified:
    if [ -z $name ] ; then #hostname not specified
@@ -70,13 +60,13 @@ function set_hostname {
       echo "HOSTNAME=$name" >> /etc/sysconfig/network #append hostname
    fi
    # Set /etc/hosts:
-   if grep -q "^$(get_primary_ip)" /etc/hosts ; then #hostname already set
-      sed -i -e "s|^\($(get_primary_ip)\).*$|\1 $(get_rdns_primary_ip) $name|" /etc/hosts #replace hostname
+   if grep -q "^$(get_ip)" /etc/hosts ; then #hostname already set
+      sed -i -e "s|^\($(get_ip)\).*$|\1 $(get_rdns) $name|" /etc/hosts #replace hostname
    else #hostname not set
       echo -n \
 "127.0.0.1 localhost localhost.localdomain localhost4 localhost4.localdomain4
 ::1 localhost localhost.localdomain localhost6 localhost6.localdomain6
-$(get_primary_ip) $(get_rdns_primary_ip) $name
+$(get_ip) $(get_rdns) $name
 " > /etc/hosts #set hostname
    fi
    return 0 #done
@@ -87,7 +77,7 @@ $(get_primary_ip) $(get_rdns_primary_ip) $name
 # $1 the IP address. {REQUIRED}
 # $2 the netmask. {REQUIRED}
 # $3 the gateway. {REQUIRED}
-function set_public_ip {
+function network.set_public_ip {
    local ip_address="$1"
    local netmask="$2"
    local gateway="$3"
@@ -125,7 +115,7 @@ GATEWAY=$gateway
 # Private IPs have no gateway (they are not publicly routable), thus only IP address and netmask need be specified.
 # $1 the IP address. {REQUIRED}
 # $2 the netmask.  {REQUIRED}
-function set_private_ip {
+function network.set_private_ip {
    local ip_address="$1"
    local netmask="$2"
    # Make sure ip address is specified:
@@ -154,7 +144,7 @@ NETMASK=$netmask
 
 # Sets the local domain name.
 # $1 the name of the local domain, i.e. 'members.linode.com'. {REQUIRED}
-function set_domain {
+function network.set_domain {
    local name="$1"
    # Make sure name is specified:
    if [ -z $name ] ; then
@@ -173,7 +163,7 @@ domain $name" \
 # Sets the search list for hostnames lookup.
 # Usually this is the same as the local domain.
 # $1 the hostname of the search list, i.e. 'members.linode.com'. {REQUIRED}
-function set_search_list {
+function network.set_search_list {
    local name="$1"
    # Make sure name is specified:
    if [ -z $name ] ; then
@@ -191,7 +181,7 @@ search $name" \
 
 # Sets the nameserver(s) of the DNS resolver.
 # $+ the IP address(es) of the nameserver(s) separated by space. {REQUIRED}
-function set_resolver_ns {
+function network.set_resolver_ns {
    # Make sure at least one nameserver is specified:
    if [ $# -eq 0 ] ; then
       echo "At least one nameserver must be specified."
@@ -213,7 +203,7 @@ options rotate" \
 }
 
 # Restarts the network service.
-function restart_network {
+function network.restart {
    service network restart
    service network status
    return 0 #done
@@ -221,7 +211,7 @@ function restart_network {
 
 # Returns 0 if the specified port is valid, 1 if not.
 # $1 port number, positive integer ranging between 0 and 65535. {REQUIRED}
-function valid_port {
+function network.valid_port {
    local port="$1"
    if [[ $port =~ ^[0-9]+$ ]] ; then #port is an integer
       if [ $port -gt 65535 ] ; then #port number is invalid

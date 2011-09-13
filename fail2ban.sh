@@ -23,7 +23,7 @@ FAIL2BAN_STATE_DIR='/var/run/fail2ban'
 
 # Installs fail2ban to block automated attempts to compromise the system.
 # Please refer to http://www.fail2ban.org for further study.
-function install_fail2ban {
+function fail2ban.install {
    # Fail2Ban runs under root account.
    # Create directories & set appropriate permissions:
    mkdir -m u=rwx,g=rx,o=rx $FAIL2BAN_HOME_DIR
@@ -84,7 +84,7 @@ function install_fail2ban {
 
 # Enables a fail2ban jail of the specified type.
 # $1 the type of the jail, 'SSH' by default. {OPTIONAL}
-function enable_fail2ban_jail {
+function fail2ban.enable {
    local type=${1-"SSH"}
    case $type in
       'SSH')
@@ -106,7 +106,7 @@ function enable_fail2ban_jail {
 # Unblocks a host that was banned by fail2ban.
 # $1 IP address or hostname of the client, i.e. '192.162.5.78'. {REQUIRED}
 # $2 the type of the jail that user will be unblocked from, 'SSH' by default. {OPTIONAL}
-function remove_banned_host {
+function fail2ban.unblock {
    local host="$1"
    local type=${1-'SSH'}
    # Make sure host is specified:

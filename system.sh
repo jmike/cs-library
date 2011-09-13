@@ -16,13 +16,13 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # Updates currently installed system packages.
-function update {
+function system.update {
    yum -y update
    return 0 #done
 }
 
 # Installs extra packages and repositories.
-function install_extras {
+function system.install_extras {
    # Install EPEL repository:
    case $(cat $(ls /etc/*-release | head -1) | sed -e "s|^.*\(CentOS\).*\([0-9]\+\.[0-9]\+\).*$|\1 \2|") in #in case distro name is ..
       'CentOS 6.0')
@@ -72,7 +72,7 @@ bind-utils
 # Promotes the specified user to sudoer.
 # User will be able to run all commands (similar to root), without entering a password.
 # $1 the user that will be promoted, i.e. 'michael'. {REQUIRED}
-function set_superuser {
+function system.set_superuser {
    local user=$1
    # Make sure user is specified:
    if [ -z $user ] ; then #user not specified
@@ -91,7 +91,7 @@ function set_superuser {
 }
 
 # Sets system timezone to UTC/GMT.
-function set_timezone {
+function system.set_timezone {
    ln -sf /usr/share/zoneinfo/UTC /etc/localtime
    return 0 #done
 }

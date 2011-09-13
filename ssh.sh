@@ -24,7 +24,7 @@ SSH_PORT=${1-'22'}
 # Configures and hardens the SSH daemon.
 # Please note that Red Hat has a policy of backporting security patches from the latest releases into the current distribution version. Thus SSH daemon may seem outdated, while it is not. As long as the latest updates are applied to system, the SSH daemon will be fully patched.
 # Please refer to http://wiki.centos.org/HowTos/Network/SecuringSSH for further reading on SSH security.
-function set_sshd {
+function ssh.configure {
    # Configure:
    sed -i -e "s|^\(#\?\)\(Port\)\(\s\+\)\(.*\)$|\2 $SSH_PORT|" $SSH_CONF_FILE #change SSH port
    sed -i -e "s|^\(#\?\)\(PermitRootLogin\)\(\s\+\)\(.*\)$|\2 no|" $SSH_CONF_FILE #disable root login
@@ -54,7 +54,7 @@ $SSH_CONF_FILE #log messages of INFO level (or higher) in /var/log/secure
    chmod u=rw,g=,o= $SSH_CONF_FILE
    service sshd reload #restart service
    # Set firewall:
-   allow tcp $SSH_PORT
+   firewall.allow tcp $SSH_PORT
    return 0 #done
 }
 
@@ -62,7 +62,7 @@ $SSH_CONF_FILE #log messages of INFO level (or higher) in /var/log/secure
 # $1 the user that will be emprisoned, i.e. 'betty'. {REQUIRED}
 # $2 the directory that user will be emprisoned into, i.e. '/home/betty'. {REQUIRED}
 # Please note that jail directory should be owned by root, otherwise chrooting won't work.
-function add_sftp_jail {
+function ssh.add_jail {
    local user="$1"
    local jail="$2"
    # Make sure user is specified:
@@ -86,9 +86,7 @@ function add_sftp_jail {
       return 1 #exit
    fi
    # Make sure chroot jail does not already exist:
-   if grep -iq "^Match User \"$user\"" $SSH_CONF_FILE ; then #chroot jail already exists in config file
-      sed -i -e "/^Match User \"$user\"$/,/^#End of Match$/d" $SSH_CONF_FILE #remove lines from "Match User $user" to the first "#End of Match"
-   fi
+   sed -i -e "/^Match User \"$user\"$/,/^#End of Match$/d" $SSH_CONF_FILE #remove lines from "Match User $user" to the first "#End of Match"
    # Configure new chroot jail:
    echo -n \
 "Match User \"$user\"
@@ -103,7 +101,7 @@ function add_sftp_jail {
 
 # Releases the specified user from her SFTP jail.
 # $1 the user that will be released, i.e. 'mary'. {REQUIRED}
-function remove_sftp_jail {
+function ssh.remove_jail {
    local user="$1"
    # Make sure user is specified:
    if [ -z $user ] ; then #user not specified

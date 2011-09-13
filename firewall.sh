@@ -20,7 +20,7 @@ source network.sh
 FW_CHAIN='Chuck_Norris' #spaces not valid here
 
 # Initializes iptables with basic firewall rules.
-function set_firewall {
+function firewall.configure {
    # Configure:
    sed -i -e 's|^\(IPTABLES_MODULES=\)\(.*\)$|\1""|' /etc/sysconfig/iptables-config #disable all modules
    sed -i -e 's|^\(IPTABLES_MODULES_UNLOAD=\)\(.*\)$|\1"no"|' /etc/sysconfig/iptables-config
@@ -57,7 +57,7 @@ function set_firewall {
 # Allows incoming traffic to the specified port(s) of the supplied network protocol.
 # $1 network protocol, either "tcp" or "udp". {REQUIRED}
 # $+ port number(s) separated by space, positive integers ranging between 0 and 65535. {REQUIRED}
-function allow {
+function firewall.allow {
    local protocol="$1"
    shift #ignore first parameter, which represents protocol
    # Make sure protocol is specified:
@@ -77,7 +77,7 @@ function allow {
    fi
    # Make sure the specified port(s) are valid:
    for port in "$@"; do
-      if ! valid_port $port ; then
+      if ! network.valid_port $port ; then
          echo "Invalid port $port. Please specify a number between 0 and 65535."
          return 1 #exit
       fi
@@ -97,7 +97,7 @@ function allow {
 # Denies incoming traffic to the specified port(s) of the supplied network protocol.
 # $1 network protocol, either "tcp" or "udp". {REQUIRED}
 # $+ port number(s) serarated by space, positive integers ranging between 0 and 65535. {REQUIRED}
-function deny {
+function firewall.deny {
    local protocol="$1"
    shift #ignore first parameter, which represents protocol
    # Make sure protocol is specified:
@@ -117,7 +117,7 @@ function deny {
    fi
    # Make sure the specified port(s) are valid:
    for port in "$@"; do
-      if ! valid_port $port ; then
+      if ! network.valid_port $port ; then
          echo "Invalid port $port. Please specify a number between 0 and 65535."
          return 1 #exit
       fi
