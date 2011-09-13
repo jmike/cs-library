@@ -50,7 +50,8 @@ THERE IS A PLACE FOR EVERYTHING
 A. Applications are installed in "/opt", i.e. /opt/mysql.
 B. Configuration files are stored in "/etc", i.e. /etc/nginx/nginx.conf.
 C. Log files are stored in "/var/log", i.e. /var/log/httpd/error.log.
-D. State files, such as PID or Lock files, are stored in "/var/run", i.e. /var/run/mysql/mysql.sock.
-E. Init.d scripts are stored in "/etc/init.d", i.e. /etc/init.d/sshd.
-F. Profile.d scripts are stored in "/etc/profile.d", i.e. /etc/profile.d/mysql.sh.
-G. Logrotate.d scripts are stored in "/etc/logrotate.d", i.e. /etc/logrotate.d/mysql.
+D. State files, such as PID files, are stored in "/var/run", i.e. /var/run/mysql/mysql.pid.
+E. Lock files are stored in "/var/lock", i.e. /var/run/mysql/mysql.lock.
+F. Init.d scripts are stored in "/etc/init.d", i.e. /etc/init.d/sshd.
+G. Profile.d scripts are stored in "/etc/profile.d", i.e. /etc/profile.d/mysql.sh.
+H. Logrotate.d scripts are stored in "/etc/logrotate.d", i.e. /etc/logrotate.d/mysql.

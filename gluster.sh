@@ -17,20 +17,21 @@
 
 source firewall.sh
 source network.sh
+source string.sh
 
 GLUSTER_URI='http://download.gluster.com/pub/gluster/glusterfs/LATEST/glusterfs-3.2.3.tar.gz'
-GLUSTER_USER='mysql'
-GLUSTER_GROUP='mysql'
 GLUSTER_HOME_DIR='/opt/gluster'
-GLUSTER_CONF_FILE='/etc/my.cnf'
+GLUSTER_CONF_DIR='/etc/gluster'
 GLUSTER_LOG_DIR='/var/log/gluster'
-GLUSTER_STATE_DIR='/var/run/mysql'
+GLUSTER_STATE_DIR='/var/run/gluster'
 
 # Installs gluster infrastructure for running both daemon and client instances.
 function gluster.install {
    # Create directories & set appropriate permissions:
    mkdir -m u=rwx,g=rx,o=rx $GLUSTER_HOME_DIR
-   mkdir -m u=rwx,g=rwx,o= $GLUSTER_LOG_DIR
+   mkdir -m u=rwx,g=rx,o= $GLUSTER_CONF_DIR
+   mkdir -m u=rwx,g=rx,o= $GLUSTER_LOG_DIR
+   mkdir -m u=rwx,g=rx,o= $GLUSTER_STATE_DIR
    # Install prerequisites:
    yum -y install bison gcc portmap flex libtool fuse make automake autoconf
    # Download, compile & install files:
@@ -40,7 +41,10 @@ function gluster.install {
    cd gluster*
    # Georeplication module is not needed because we won't be creating volumes geographically dispersed.
    # Infiniband module is not needed because we won't be using infiniband network protocol.
-   ./configure --prefix=$GLUSTER_HOME_DIR \
+   ./configure \
+--prefix=$GLUSTER_HOME_DIR \
+--sysconfdir=$GLUSTER_CONF_DIR \
+--localstatedir=$GLUSTER_STATE_DIR \
 --with-initdir=/etc/init.d \
 --disable-georeplication \
 --disable-infiniband
@@ -55,6 +59,7 @@ export PATH" > /etc/profile.d/gluster.sh #make changes to PATH permanent for all
    # Collect garbage
    cd ~
    rm -rf gluster*
+   gluster --version #echo gluster version
    return 0 #done
 }
 
@@ -82,7 +87,7 @@ function gluster.set_daemon {
 
 # Creates a new gluster volume.
 # $1 the name of the volume, i.e. 'athos'. {REQUIRED}
-# $2 the path of the actual folder that will be shared across nodes, i.e. '/etc/athos'. {REQUIRED}
+# $2 the path of the actual folder that will be shared across nodes, i.e. '/var/lib/gluster/athos'. {REQUIRED}
 function gluster.create_volume {
    local volume="$1"
    local path="$2"
@@ -119,8 +124,8 @@ function gluster.create_volume {
 # Expands the specified gluster volume.
 # Should be run on the first node of the volume.
 # $1 hostname or ip address of the gluster expansion server. {REQUIRED}
-# $2 the name of the volume, i.e. data. {REQUIRED}
-# $3 the path of the actual folder that will be shared across nodes, i.e. /etc/data. {REQUIRED}
+# $2 the name of the volume, i.e. 'data'. {REQUIRED}
+# $3 the path of the actual folder that will be shared across nodes, i.e. '/var/lib/data'. {REQUIRED}
 function gluster.expand_volume {
    local host="$1"
    local volume="$2"
@@ -159,13 +164,13 @@ function gluster.expand_volume {
 }
 
 # Mounts the specified volume to the supplied path.
-# $1 hostname or ip address of the volume's primary server. {REQUIRED}
-# $2 the name of the volume. {REQUIRED}
-# $3 the path of the mount point for the local machine. {REQUIRED}
+# $1 hostname or ip address of the volume's primary server, i.e. '192.168.176.85'. {REQUIRED}
+# $2 the name of the volume, i.e. 'athos'. {REQUIRED}
+# $3 the path of the mount point for the local machine, i.e. '/mnt/athos'. Defaults to '/mnt/<volume name>'. {OPTIONAL}
 function gluster.mount_volume {
    local host="$1"
    local volume="$2"
-   local path="$3"
+   local path=${3-"/mnt/$2"}
    # Make sure Gluster is installed:
    if [ ! -e $GLUSTER_HOME_DIR/sbin/gluster ] ; then
       echo "Gluster not found on this system. Please install Gluster and retry."
@@ -181,15 +186,21 @@ function gluster.mount_volume {
       echo "Volume name must be specified."
       return 1 #exit
    fi
-   # Make sure path is specified:
-   if [ -z $path ] ; then #path not specified
-      echo "The path of the mount point must be specified."
-      return 1 #exit
-   fi
    # Mount volume:
-   mkdir $path #create the mount point
-   if mount|grep $path; then umount $path; fi #make sure that mount point is not already in use
-   echo -e "$host:/$volume $path glusterfs defaults,_netdev,log-level=WARNING,log-file=$GLUSTER_LOG_DIR/mount.log,transport=tcp,acl 0 0" >> /etc/fstab
-   mount $path
+   if [ ! -d $path ] ; then #mount point does not exist
+      mkdir $path #create the mount point
+   fi
+   chmod u=rwx,g=,o= $path #set mount point permissions
+   if mount|grep $path; then umount $path; fi #make sure mount point is not already in use
+   sed -i -e "/^$host:\/$volume/d" /etc/fstab #delete fstab directive if already exists
+   echo -e "$host:/$volume $path glusterfs defaults,_netdev,log-level=WARNING,log-file=$GLUSTER_LOG_DIR/mount.log,transport=tcp,acl 0 0" >> /etc/fstab #append fstab directive
+   mount $path #mount path
+   # Make sure volume mounting survives reboot:
+   local escaped_path=$(string.escape $path)
+   sed -i \
+-e "/^mount\s\+$escaped_path$/d" \
+-e "$ a \
+mount $escaped_path" \
+/etc/rc.d/rc.local #add mount command in rc.local
    return 0 #done
 }

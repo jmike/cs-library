@@ -25,6 +25,7 @@ MYSQL_HOME_DIR='/opt/mysql'
 MYSQL_CONF_FILE='/etc/my.cnf'
 MYSQL_LOG_DIR='/var/log/mysql'
 MYSQL_STATE_DIR='/var/run/mysql'
+MYSQL_LOCK_DIR='/var/lock/mysql'
 MYSQL_PORT=${1-'3306'}
 MYSQL_ROOT_USERNAME=${2-'root'}
 MYSQL_ROOT_PASSWORD=${3-''}
@@ -45,7 +46,9 @@ function mysql.install {
    mkdir -m u=rwx,g=rwx,o= $MYSQL_LOG_DIR
    chown $MYSQL_USER $MYSQL_LOG_DIR
    mkdir -m u=rwx,g=rwx,o= $MYSQL_STATE_DIR
-   chown $MYSQL_USER $MYSQL_STATE_DIR   
+   chown $MYSQL_USER $MYSQL_STATE_DIR
+   mkdir -m u=rwx,g=rwx,o= $MYSQL_LOCK_DIR
+   chown $MYSQL_USER $MYSQL_LOCK_DIR  
    # Donwload, compile & install files:
    cd ~
    wget $MYSQL_URI #obtain precompiled binary files
@@ -213,7 +216,7 @@ $MYSQL_LOG_DIR/slow.log {
    /bin/cp -rf $MYSQL_HOME_DIR/support-files/mysql.server /etc/init.d/mysqld #copy init.d script
    sed -i -e "s|^\(basedir\)\(\s\?=\s\?\)\(.*\)$|\1='$MYSQL_HOME_DIR'|" /etc/init.d/mysqld #set installation home directory
    sed -i -e "s|^\(datadir\)\(\s\?=\s\?\)\(.*\)$|\1='$MYSQL_HOME_DIR/data'|" /etc/init.d/mysqld #set data directory
-   sed -i -e "s|^\(lockdir\)\(\s\?=\s\?\)\(.*\)$|\1='$MYSQL_STATE_DIR'|" /etc/init.d/mysqld #set lock directory
+   sed -i -e "s|^\(lockdir\)\(\s\?=\s\?\)\(.*\)$|\1='$MYSQL_LOCK_DIR'|" /etc/init.d/mysqld #set lock directory
    sed -i -e "s|^\(lock_file_path\)\(\s\?=\s\?\)\(.*\)$|\1=\"\$lockdir/mysql.lock\"|" /etc/init.d/mysqld #set lock file
    sed -i -e "s|^\(mysqld_pid_file_path\)\(\s\?=\s\?\)\(.*\)$|\1='$MYSQL_STATE_DIR/mysql.pid'|" /etc/init.d/mysqld #set PID file
    chmod u=rwx,g=rx,o= /etc/init.d/mysqld #make executable
