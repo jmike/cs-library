@@ -18,7 +18,7 @@
 source firewall.sh
 source network.sh
 
-MYSQL_URI='http://dev.mysql.com/get/Downloads/MySQL-5.5/mysql-5.5.15-linux2.6-x86_64.tar.gz/from/http://www.mirrorservice.org/sites/ftp.mysql.com/'
+MYSQL_URI='http://dev.mysql.com/get/Downloads/MySQL-5.5/mysql-5.5.16-linux2.6-x86_64.tar.gz/from/http://www.mirrorservice.org/sites/ftp.mysql.com/'
 MYSQL_USER='mysql'
 MYSQL_GROUP='mysql'
 MYSQL_HOME_DIR='/opt/mysql'
