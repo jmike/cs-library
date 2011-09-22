@@ -86,7 +86,8 @@ function system.set_superuser {
    fi
    # Set as superuser:
    usermod --append --groups wheel $user #append user to wheel group
-   sed -i -e "s|^\(#\?\)\(\s\?\)\(%wheel\)\(\s\+\)\(ALL=(ALL)\)\(\s\+\)\(NOPASSWD:\sALL\)\(.*\)$|\3 \5 \7|" /etc/sudoers #allow wheel group to run all commands (similar to root)
+   sed -i -e "s|^#\?\s\?\(%wheel\)\s\+\(ALL=(ALL)\)\s\+\(NOPASSWD:\s\?ALL\).*$|\1 \2 \3|" /etc/sudoers #allow wheel group to run all commands
+   sed -i -e "s|^\(Defaults\)\s\+\(requiretty\)$|# \1 \2|" /etc/sudoers #allow sudo without tty for remote ssh commands       
    return 0 #done
 }
 

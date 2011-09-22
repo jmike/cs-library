@@ -18,8 +18,8 @@
 source firewall.sh
 
 NGINX_URI="http://nginx.org/download/nginx-1.0.6.tar.gz"
-NGINX_USER="nginx"
-NGINX_GROUP="nginx"
+NGINX_USER="www"
+NGINX_GROUP="www"
 NGINX_HOME_DIR="/opt/nginx"
 HTTP_PORT="$1"
 HTTPS_PORT="$2"

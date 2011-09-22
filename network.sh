@@ -60,13 +60,13 @@ function network.set_hostname {
       echo "HOSTNAME=$name" >> /etc/sysconfig/network #append hostname
    fi
    # Set /etc/hosts:
-   if grep -q "^$(get_ip)" /etc/hosts ; then #hostname already set
-      sed -i -e "s|^\($(get_ip)\).*$|\1 $(get_rdns) $name|" /etc/hosts #replace hostname
+   if grep -q "^$(network.get_ip)" /etc/hosts ; then #hostname already set
+      sed -i -e "s|^\($(network.get_ip)\).*$|\1 $(network.get_rdns) $name|" /etc/hosts #replace hostname
    else #hostname not set
       echo -n \
 "127.0.0.1 localhost localhost.localdomain localhost4 localhost4.localdomain4
 ::1 localhost localhost.localdomain localhost6 localhost6.localdomain6
-$(get_ip) $(get_rdns) $name
+$(network.get_ip) $(network.get_rdns) $name
 " > /etc/hosts #set hostname
    fi
    return 0 #done

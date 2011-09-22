@@ -597,7 +597,7 @@ function mysql.set_slave {
       return 1 #exit
    fi
    # Make sure data file exists:
-   if [ -e $data_file ] ; then #data file not found
+   if [ ! -e $data_file ] ; then #data file not found
       echo "Snapshot file with master data cannot be found."
       return 1 #exit
    fi
