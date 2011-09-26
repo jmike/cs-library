@@ -18,6 +18,8 @@
 source network.sh
 
 FW_CHAIN='Chuck_Norris' #spaces not valid here
+INTF_PUBLIC="eth0"
+INTF_PRIV="eth0:1"
 
 # Initializes iptables with basic firewall rules.
 function firewall.configure {
@@ -41,12 +43,46 @@ function firewall.configure {
    iptables --table nat --flush #delete all predefined rules in "nat" table
    iptables --table mangle --flush #delete all predefined rules in "mangle" table
    iptables --delete-chain #delete all user-defined chains in "filter" table
-   iptables --policy OUTPUT ACCEPT #set new policy: allow traffic which originated from our system (OUTPUT)
+   #iptables --policy OUTPUT ACCEPT #COMMENTED OUT, REVISED: set new policy: allow traffic which originated from our system (OUTPUT)
+   iptables --policy INPUT DROP
+   iptables --policy OUTPUT DROP
+   iptables --policy FORWARD DROP
    iptables --new-chain $FW_CHAIN #create new chain in "filter" table
+   iptables --append INPUT --in-interface $INTF_PUBLIC --protocol tcp ! --syn --match state --state NEW --jump DROP
+   iptables --append INPUT --in-interface $INTF_PUBLIC --protocol tcp --tcp-flags ALL ALL --jump DROP #drop malformed XMAS packets
+   iptables --append INPUT --in-interface $INTF_PUBLIC --protocol tcp --tcp-flags ALL NONE --jump DROP #drop malformed NULL packets
+   iptables --append INPUT --in-interface $INTF_PUBLIC --source 0.0.0.0/8 --jump DROP #Start RFC1918 antispoofing dropping
+   iptables --append INPUT --in-interface $INTF_PUBLIC --destination 0.0.0.0/8 --jump DROP
+   iptables --append INPUT --in-interface $INTF_PUBLIC --source 10.0.0.0/8 --jump DROP
+   iptables --append INPUT --in-interface $INTF_PUBLIC --source 127.0.0.0/8 --jump DROP
+   iptables --append INPUT --in-interface $INTF_PUBLIC --source 169.254.0.0/16 --jump DROP
+   iptables --append INPUT --in-interface $INTF_PUBLIC --source 172.16.0.0/12 --jump DROP
+   iptables --append INPUT --in-interface $INTF_PUBLIC --source 192.168.0.0/16 --jump DROP
+   iptables --append INPUT --in-interface $INTF_PUBLIC --source 224.0.0.0/4 --jump DROP
+   iptables --append INPUT --in-interface $INTF_PUBLIC --destination 224.0.0.0/4 --jump DROP
+   iptables --append INPUT --in-interface $INTF_PUBLIC --destination 239.255.255.0/24 --jump DROP
+   iptables --append INPUT --in-interface $INTF_PUBLIC --source 240.0.0.0/5 --jump DROP
+   iptables --append INPUT --in-interface $INTF_PUBLIC --destination 240.0.0.0/5 --jump DROP 
+   iptables --append INPUT --in-interface $INTF_PUBLIC --destination 255.255.255.255 --jump DROP #End RFC1918 antispoofing dropping
+   iptables --append INPUT --in-interface $INTF_PUBLIC --protocol icmp --match icmp --icmp-type 8 --match limit --limit 1/second --jump ACCEPT #Ingress, public ICMP-ping traffic-limiting
+   iptables --append INPUT --in-interface lo --jump ACCEPT
    iptables --append INPUT --jump $FW_CHAIN #handle traffic which is entering our system (INPUT)
    iptables --append FORWARD --jump $FW_CHAIN #handle traffic which is being routed between two network interfaces on our firewall (FORWARD)
+   iptables --append OUTPUT --match state --state NEW,ESTABLISHED,RELATED --jump ACCEPT
+   iptables --append OUTPUT --out-interface lo --jump ACCEPT
+   iptables --append OUTPUT --jump $FW_CHAIN #handle traffic exiting our system (OUTPUT)
+   iptables --append $FW_CHAIN --match state --state INVALID --jump DROP #drop BOGUS packets
+   iptables --append $FW_CHAIN --match state --state ESTABLISHED,RELATED --jump ACCEPT #accept ONLY these TCP states
+   iptables --append $FW_CHAIN --protocol tcp --tcp-flags ACK,FIN FIN --jump DROP # Start NEW TCP state malformed options filtering 
+   iptables --append $FW_CHAIN --protocol tcp --tcp-flags ACK,PSH PSH --jump DROP
+   iptables --append $FW_CHAIN --protocol tcp --tcp-flags ACK,URG URG --jump DROP
+   iptables --append $FW_CHAIN --protocol tcp --tcp-flags FIN,RST FIN,RST --jump DROP
+   iptables --append $FW_CHAIN --protocol tcp --tcp-flags SYN,FIN SYN,FIN --jump DROP
+   iptables --append $FW_CHAIN --protocol tcp --tcp-flags SYN,RST SYN,RST --jump DROP
+   iptables --append $FW_CHAIN --protocol tcp --tcp-flags ALL FIN,PSH,URG --jump DROP
+   iptables --append $FW_CHAIN --protocol tcp --tcp-flags ALL SYN,FIN,PSH,URG --jump DROP
+   iptables --append $FW_CHAIN --protocol tcp --tcp-flags ALL SYN,RST,ACK,FIN,URG --jump DROP #End NEW TCP state malformed options filtering
    iptables --append $FW_CHAIN --protocol icmp --icmp-type 255 --jump ACCEPT
-   iptables --append $FW_CHAIN --match state --state ESTABLISHED,RELATED --jump ACCEPT
    iptables --append $FW_CHAIN --jump REJECT --reject-with icmp-host-prohibited
    # Save + restart:
    service iptables save
